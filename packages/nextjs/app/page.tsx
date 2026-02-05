@@ -12,8 +12,24 @@ import { notification } from "~~/utils/scaffold-eth";
 /* ═══════════════════════════════════════════
    CONSTANTS & TYPES
    ═══════════════════════════════════════════ */
-const PHASE_LABELS = ["INACTIVE", "SUBMISSIONS", "VOTING", "JUDGING", "COMPLETED"] as const;
+const PHASE_LABELS = ["CLOSED", "ACCEPTING MEMES", "VOTING IS LIVE", "THE LOBSTER JUDGES", "WINNERS CROWNED"] as const;
 const PHASE_COLORS = ["#555", "#39ff14", "#ff00ff", "#ffd700", "#ffd700"];
+
+// Rotating taglines for the ticker — mix stats with unhinged energy
+const FLAVOR_LINES = [
+  "🦞 judged by an AI lobster with a crypto wallet",
+  "⚠️ warning: may cause severe meme addiction",
+  "🧠 no thoughts, only memes",
+  "🔥 your memes fuel the burn. the burn fuels the lobster.",
+  "💀 bad memes get zero votes. skill issue.",
+  "👑 become the memelord of Base chain",
+  "🫡 submit memes. receive CLAWD. simple as.",
+  "🦞 claws up if you're degen enough to enter",
+  "📈 number go up when meme go hard",
+  "🗳️ vote with your bags, not your feelings",
+  "🚀 your meme → the arena → glory or dust",
+  "🤖 this entire app was built by an AI. cope.",
+];
 
 type Meme = {
   id: bigint;
@@ -63,7 +79,7 @@ function Ticker({ items }: { items: string[] }) {
 }
 
 /* ═══════════════════════════════════════════
-   MEME CARD — pump.fun style: image-first, dense
+   MEME CARD — image-first, dense, personality
    ═══════════════════════════════════════════ */
 function MemeCard({
   meme,
@@ -105,7 +121,7 @@ function MemeCard({
             className="w-full h-full object-cover"
             loading="lazy"
             onError={e => {
-              (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect fill='%23080808' width='400' height='300'/><text x='200' y='155' text-anchor='middle' fill='%23222' font-size='60'>🦞</text></svg>`;
+              (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect fill='%23080808' width='400' height='300'/><text x='200' y='140' text-anchor='middle' fill='%23222' font-size='60'>🦞</text><text x='200' y='190' text-anchor='middle' fill='%23181818' font-size='14'>image machine broke</text></svg>`;
             }}
           />
         ) : (
@@ -122,7 +138,7 @@ function MemeCard({
         {/* Winner badge */}
         {meme.winner && (
           <div className="absolute top-2 right-2 bg-[#ffd700] text-black text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-            WINNER
+            CERTIFIED DANK
           </div>
         )}
 
@@ -289,7 +305,7 @@ const Home: NextPage = () => {
 
   const countdown = (end: number) => {
     const diff = end - now;
-    if (diff <= 0) return "ENDED";
+    if (diff <= 0) return "TIME'S UP";
     const d = Math.floor(diff / 86400);
     const h = Math.floor((diff % 86400) / 3600);
     const m = Math.floor((diff % 3600) / 60);
@@ -301,19 +317,25 @@ const Home: NextPage = () => {
 
   const activeEnd = phase === 1 ? submissionEnd : phase === 2 ? votingEnd : 0;
 
-  /* ═══ Ticker items ═══ */
+  /* ═══ Ticker items — mix real stats with unhinged flavor ═══ */
   const tickerItems = useMemo(() => {
     const items: string[] = [];
     items.push(`🏆 PRIZE POOL: ${fmtC(prizePool)} CLAWD`);
-    items.push(`🖼️ ${memeCount} MEMES`);
-    items.push(`🔥 ${fmtC(totalBurned)} BURNED`);
-    if (activeEnd > 0) items.push(`⏰ ${countdown(activeEnd)}`);
-    items.push(`💰 40% / 25% / 15% / 10% / 10%`);
-    if (submissionFee) items.push(`📝 SUBMIT: ${fmtC(submissionFee)} CLAWD`);
-    if (voteFee) items.push(`🗳️ MIN VOTE: ${fmtC(voteFee)} CLAWD`);
-    items.push(`🔥 10% BURNED ON ALL FEES`);
+    // Pick 2 random flavor lines each render
+    const shuffled = [...FLAVOR_LINES].sort(() => Math.random() - 0.5);
+    items.push(shuffled[0]);
+    items.push(`🖼️ ${memeCount} MEMES IN THE ARENA`);
+    items.push(shuffled[1]);
+    items.push(`🔥 ${fmtC(totalBurned)} CLAWD BURNED FOREVER`);
+    items.push(shuffled[2]);
+    if (activeEnd > 0) items.push(`⏰ ${countdown(activeEnd)} LEFT — TICK TOCK`);
+    items.push(`💰 PRIZES: 40% / 25% / 15% / 10% / 10%`);
+    items.push(shuffled[3]);
+    if (submissionFee) items.push(`📝 ENTRY: ${fmtC(submissionFee)} CLAWD (10% burned)`);
+    items.push(shuffled[4]);
     return items;
-  }, [prizePool, memeCount, totalBurned, activeEnd, submissionFee, voteFee, now]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prizePool, memeCount, totalBurned, activeEnd, submissionFee]);
 
   /* ═══════════════════════════════════════
      HANDLERS
@@ -328,7 +350,7 @@ const Home: NextPage = () => {
       try {
         await writeClawd({ functionName: "approve", args: [contestAddress, fee] });
       } catch {
-        notification.error("Approval failed");
+        notification.error("Approval failed. The blockchain said no. 😤");
         setIsApproving(false);
         return;
       }
@@ -338,12 +360,12 @@ const Home: NextPage = () => {
     setIsSubmitting(true);
     try {
       await writeContest({ functionName: "submitMeme", args: [imageUri, title] });
-      notification.success("🦞 MEME DEPLOYED!");
+      notification.success("🦞 MEME DEPLOYED. THE ARENA TREMBLES.");
       setShowSubmit(false);
       setImageUri("");
       setTitle("");
     } catch {
-      notification.error("Submission failed");
+      notification.error("Submission failed. Your meme wasn't dank enough. 💀");
     }
     setIsSubmitting(false);
   };
@@ -351,7 +373,7 @@ const Home: NextPage = () => {
   const handleVote = async (memeId: number) => {
     const amountStr = voteAmounts[memeId] || "";
     if (!amountStr || Number(amountStr) <= 0) {
-      notification.error("Enter vote amount");
+      notification.error("Enter an amount. Free votes don't exist here, ser. 🦞");
       return;
     }
     const amount = parseEther(amountStr);
@@ -363,7 +385,7 @@ const Home: NextPage = () => {
       try {
         await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
       } catch {
-        notification.error("Approval failed");
+        notification.error("Approval denied. Wallet said nah. 🤷");
         setIsVoteApproving(false);
         setVotingMemeId(null);
         return;
@@ -374,10 +396,10 @@ const Home: NextPage = () => {
     setVotingMemeId(memeId);
     try {
       await writeContest({ functionName: "vote", args: [BigInt(memeId), amount] });
-      notification.success("⚡ VOTED!");
+      notification.success("⚡ VOTED. POWER LEVEL: INCREASING.");
       setVoteAmounts(prev => ({ ...prev, [memeId]: "" }));
     } catch {
-      notification.error("Vote failed");
+      notification.error("Vote failed. The meme gods are displeased. 😔");
     }
     setVotingMemeId(null);
   };
@@ -387,9 +409,9 @@ const Home: NextPage = () => {
     setIsStarting(true);
     try {
       await writeContest({ functionName: "startContest", args: [BigInt(submissionDays), BigInt(votingDays)] });
-      notification.success("🔥 ARENA OPENED!");
+      notification.success("🔥 ARENA OPENED. LET THE MEMES FLOW.");
     } catch {
-      notification.error("Failed");
+      notification.error("Failed to start");
     }
     setIsStarting(false);
   };
@@ -412,7 +434,7 @@ const Home: NextPage = () => {
     setIsFunding(true);
     try {
       await writeContest({ functionName: "fundPrizePool", args: [amount] });
-      notification.success("💰 Funded!");
+      notification.success("💰 Prize pool funded. The dankness grows.");
       setFundAmount("");
     } catch {
       notification.error("Funding failed");
@@ -424,7 +446,7 @@ const Home: NextPage = () => {
     setIsAdvancingVoting(true);
     try {
       await writeContest({ functionName: "advanceToVoting" });
-      notification.success("⚡ VOTING!");
+      notification.success("⚡ VOTING IS LIVE. CHOOSE YOUR FIGHTER.");
     } catch {
       notification.error("Failed");
     }
@@ -435,7 +457,7 @@ const Home: NextPage = () => {
     setIsAdvancingJudging(true);
     try {
       await writeContest({ functionName: "advanceToJudging" });
-      notification.success("🧑‍⚖️ JUDGING!");
+      notification.success("🦞 THE LOBSTER NOW JUDGES YOUR MEMES.");
     } catch {
       notification.error("Failed");
     }
@@ -449,7 +471,7 @@ const Home: NextPage = () => {
       const ids = winnerIds.split(",").map(s => BigInt(s.trim()));
       const amounts = winnerAmounts.split(",").map(s => parseEther(s.trim()));
       await writeContest({ functionName: "distributePrizes", args: [ids, amounts] });
-      notification.success("🏆 DISTRIBUTED!");
+      notification.success("🏆 PRIZES DISTRIBUTED. MEMELORDS CROWNED.");
     } catch {
       notification.error("Distribution failed");
     }
@@ -467,10 +489,13 @@ const Home: NextPage = () => {
           {/* Left: brand + phase */}
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-xl shrink-0">🦞</span>
-            <span className="font-black text-sm tracking-wider hidden sm:block">
-              <span className="text-[#ff00ff]">MEME</span>
-              <span className="text-white/90">ARENA</span>
-            </span>
+            <div className="hidden sm:block">
+              <span className="font-black text-sm tracking-wider">
+                <span className="text-[#ff00ff]">MEME</span>
+                <span className="text-white/90">ARENA</span>
+              </span>
+              <span className="text-[9px] text-gray-700 font-mono ml-1.5">by clawd</span>
+            </div>
 
             {/* Phase pill */}
             <div
@@ -505,20 +530,14 @@ const Home: NextPage = () => {
 
             {/* Submit button */}
             {phase === 1 && (
-              <button
-                onClick={() => setShowSubmit(true)}
-                className="btn-hot px-3 py-1.5 text-[10px]"
-              >
-                + SUBMIT
+              <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
+                YEET MEME
               </button>
             )}
 
             {/* Admin */}
             {isAdmin && (
-              <button
-                onClick={() => setShowAdmin(!showAdmin)}
-                className="text-gray-600 hover:text-[#ffd700] transition-colors"
-              >
+              <button onClick={() => setShowAdmin(!showAdmin)} className="text-gray-600 hover:text-[#ffd700] transition-colors">
                 🔧
               </button>
             )}
@@ -535,7 +554,7 @@ const Home: NextPage = () => {
                       </button>
                     ) : chain?.unsupported ? (
                       <button onClick={openChainModal} className="bg-red-600/20 border border-red-500/30 rounded-lg px-3 py-1.5 text-[11px] font-bold text-red-400">
-                        Wrong Net
+                        Wrong Chain
                       </button>
                     ) : (
                       <button onClick={openAccountModal} className="flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] rounded-lg px-2.5 py-1.5 transition-all">
@@ -557,28 +576,19 @@ const Home: NextPage = () => {
       {/* ═══ SORT TABS + COUNT ═══ */}
       <div className="max-w-[1600px] mx-auto px-3 py-3 flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <button
-            className={`sort-tab ${sortMode === "top" ? "active" : ""}`}
-            onClick={() => setSortMode("top")}
-          >
+          <button className={`sort-tab ${sortMode === "top" ? "active" : ""}`} onClick={() => setSortMode("top")}>
             🔥 top
           </button>
-          <button
-            className={`sort-tab ${sortMode === "new" ? "active" : ""}`}
-            onClick={() => setSortMode("new")}
-          >
-            🆕 new
+          <button className={`sort-tab ${sortMode === "new" ? "active" : ""}`} onClick={() => setSortMode("new")}>
+            🆕 fresh
           </button>
-          <button
-            className={`sort-tab ${sortMode === "winners" ? "active" : ""}`}
-            onClick={() => setSortMode("winners")}
-          >
-            🏆 winners
+          <button className={`sort-tab ${sortMode === "winners" ? "active" : ""}`} onClick={() => setSortMode("winners")}>
+            👑 memelords
           </button>
         </div>
         <div className="text-[11px] text-gray-600 font-mono">
           {sortedMemes.length} meme{sortedMemes.length !== 1 ? "s" : ""}
-          {contestId > 0 && <span className="ml-2 text-gray-700">contest #{contestId}</span>}
+          {contestId > 0 && <span className="ml-2 text-gray-700">szn {contestId}</span>}
         </div>
       </div>
 
@@ -604,52 +614,73 @@ const Home: NextPage = () => {
           </div>
         </div>
       ) : (
-        /* ═══ EMPTY STATE ═══ */
-        <div className="max-w-lg mx-auto px-4 py-24 text-center">
-          <div className="text-6xl mb-4 opacity-30">🦞</div>
-          <h2 className="text-xl font-black text-gray-600 mb-2">
-            {phase === 0 ? "ARENA CLOSED" : phase === 1 ? "NO MEMES YET" : "NOTHING HERE"}
-          </h2>
-          <p className="text-sm text-gray-700 font-mono mb-6">
-            {phase === 0
-              ? "Waiting for contest to start..."
-              : phase === 1
-              ? "Be the first to submit a meme and claim #1"
-              : "No submissions this round."}
-          </p>
-          {phase === 1 && (
-            <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
-              + SUBMIT FIRST MEME
-            </button>
+        /* ═══ EMPTY STATE — with personality ═══ */
+        <div className="max-w-lg mx-auto px-4 py-20 text-center">
+          <div className="text-7xl mb-5">🦞</div>
+          {phase === 0 ? (
+            <>
+              <h2 className="text-2xl font-black text-white mb-2">THE ARENA IS CLOSED</h2>
+              <p className="text-gray-500 font-mono text-sm mb-1">
+                No active contest right now.
+              </p>
+              <p className="text-gray-700 font-mono text-xs">
+                The lobster is resting. Come back when the memes flow again.
+              </p>
+            </>
+          ) : phase === 1 ? (
+            <>
+              <h2 className="text-2xl font-black text-white mb-2">ZERO MEMES???</h2>
+              <p className="text-gray-500 font-mono text-sm mb-1">
+                The arena is open but nobody{"'"}s brave enough to go first.
+              </p>
+              <p className="text-gray-700 font-mono text-xs mb-6">
+                Be the main character. Submit first. Become legend.
+              </p>
+              <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
+                I{"'"}LL GO FIRST 🫡
+              </button>
+            </>
+          ) : phase === 4 && sortMode === "winners" ? (
+            <>
+              <h2 className="text-2xl font-black text-white mb-2">NO WINNERS YET</h2>
+              <p className="text-gray-500 font-mono text-sm">
+                The lobster hasn{"'"}t crowned anyone. Switch to &quot;top&quot; to see all entries.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-black text-gray-600 mb-2">NOTHING HERE</h2>
+              <p className="text-gray-700 font-mono text-sm">
+                Try a different tab.
+              </p>
+            </>
           )}
         </div>
       )}
 
-      {/* ═══ MINIMAL FOOTER ═══ */}
-      <footer className="border-t border-white/[0.03] py-6 mt-8">
+      {/* ═══ FOOTER — compact, personality ═══ */}
+      <footer className="border-t border-white/[0.03] py-5 mt-8">
         <div className="max-w-[1600px] mx-auto px-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-4 text-[10px] text-gray-700 font-mono">
+          <div className="flex items-center gap-3 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
             <span>prizes: 40/25/15/10/10%</span>
-            <span>•</span>
-            <span>10% of fees burned</span>
-            <span>•</span>
-            <span>submit → vote → judge → win</span>
+            <span className="text-gray-800">•</span>
+            <span>10% of everything burned 🔥</span>
+            <span className="text-gray-800">•</span>
+            <span>submit → vote → lobster judges → win</span>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-gray-700 font-mono">
-            {contestAddress && (
-              <span className="flex items-center gap-1">
-                <Address address={contestAddress} />
-              </span>
-            )}
-            <span>•</span>
+          <div className="flex items-center gap-3 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
+            {contestAddress && <Address address={contestAddress} />}
+            <span className="text-gray-800">•</span>
             <a
               href="https://clawdbotatg.eth.limo"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#ff00ff]/50 hover:text-[#ff00ff] transition-colors"
+              className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors"
             >
               built by clawd 🦞
             </a>
+            <span className="text-gray-800">•</span>
+            <span className="text-gray-800">unaudited. degen at your own risk.</span>
           </div>
         </div>
       </footer>
@@ -657,33 +688,30 @@ const Home: NextPage = () => {
       {/* ═══ ADMIN MODAL ═══ */}
       {showAdmin && isAdmin && (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowAdmin(false)}>
-          <div
-            className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-black text-[#ffd700]">🔧 Admin</h3>
+              <h3 className="text-base font-black text-[#ffd700]">🔧 Lobster Control Panel</h3>
               <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">✕</button>
             </div>
 
             <div className="space-y-3">
               {(phase === 0 || phase === 4) && (
                 <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Start Contest</div>
+                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Open the Arena</div>
                   <div className="flex gap-2 mb-2">
                     <input type="number" value={submissionDays} onChange={e => setSubmissionDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
-                    <span className="text-gray-600 self-center text-[10px]">sub days</span>
+                    <span className="text-gray-600 self-center text-[10px]">sub</span>
                     <input type="number" value={votingDays} onChange={e => setVotingDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
-                    <span className="text-gray-600 self-center text-[10px]">vote days</span>
+                    <span className="text-gray-600 self-center text-[10px]">vote</span>
                   </div>
                   <button onClick={handleStartContest} disabled={isStarting} className="btn-hot w-full py-2 text-xs bg-[#39ff14] hover:bg-[#44ff22]">
-                    {isStarting ? "Starting..." : "🚀 Start"}
+                    {isStarting ? "Opening..." : "🚀 Open Arena"}
                   </button>
                 </div>
               )}
 
               <div className="bg-white/[0.03] rounded-lg p-3">
-                <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Fund Prize Pool</div>
+                <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Fund the Dankness</div>
                 <input type="text" value={fundAmount} onChange={e => setFundAmount(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none focus:border-[#ffd700]/50" placeholder="CLAWD" />
                 <button onClick={handleFundPrizePool} disabled={isFunding || isFundApproving} className="btn-hot w-full py-2 text-xs bg-[#ffd700] hover:bg-[#ffdd33] text-black">
                   {isFundApproving ? "Approving..." : isFunding ? "Funding..." : "💰 Fund"}
@@ -692,22 +720,22 @@ const Home: NextPage = () => {
 
               {phase === 1 && (
                 <button onClick={handleAdvanceToVoting} disabled={isAdvancingVoting} className="btn-hot w-full py-2 text-xs">
-                  {isAdvancingVoting ? "..." : "⚡ → Voting"}
+                  {isAdvancingVoting ? "..." : "⚡ → Let Them Vote"}
                 </button>
               )}
               {phase === 2 && (
                 <button onClick={handleAdvanceToJudging} disabled={isAdvancingJudging} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black">
-                  {isAdvancingJudging ? "..." : "🧑‍⚖️ → Judging"}
+                  {isAdvancingJudging ? "..." : "🦞 → Lobster Judges Now"}
                 </button>
               )}
 
               {phase === 3 && (
                 <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Distribute</div>
+                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Crown the Memelords</div>
                   <input type="text" value={winnerIds} onChange={e => setWinnerIds(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-1.5 focus:outline-none" placeholder="IDs: 1,3,5" />
                   <input type="text" value={winnerAmounts} onChange={e => setWinnerAmounts(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none" placeholder="Amounts: 1000000,500000" />
                   <button onClick={handleDistributePrizes} disabled={isDistributing} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black">
-                    {isDistributing ? "..." : "🏆 Distribute"}
+                    {isDistributing ? "..." : "👑 Crown Winners"}
                   </button>
                 </div>
               )}
@@ -719,14 +747,14 @@ const Home: NextPage = () => {
       {/* ═══ SUBMIT MODAL ═══ */}
       {showSubmit && (
         <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowSubmit(false)}>
-          <div
-            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-black text-white">Submit Meme</h3>
+          <div className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-base font-black text-white">Yeet a Meme Into the Arena</h3>
               <button onClick={() => setShowSubmit(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
+            <p className="text-[10px] text-gray-600 font-mono mb-4">
+              your meme will be judged by an AI lobster. choose wisely.
+            </p>
 
             <div className="space-y-3">
               <div>
@@ -736,7 +764,7 @@ const Home: NextPage = () => {
                   value={imageUri}
                   onChange={e => setImageUri(e.target.value)}
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="https://..."
+                  placeholder="https://i.imgur.com/your-dank-meme.jpg"
                 />
               </div>
 
@@ -748,7 +776,7 @@ const Home: NextPage = () => {
 
               <div>
                 <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 flex justify-between">
-                  <span>Title</span>
+                  <span>Title (make it count)</span>
                   <span className="text-gray-700">{title.length}/100</span>
                 </label>
                 <input
@@ -756,13 +784,16 @@ const Home: NextPage = () => {
                   value={title}
                   onChange={e => setTitle(e.target.value.slice(0, 100))}
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="My spicy meme"
+                  placeholder="when the lobster judges your meme and..."
                 />
               </div>
 
               <div className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2.5">
-                <span className="text-[10px] text-gray-500 font-mono uppercase">Fee</span>
-                <span className="text-sm font-black font-mono text-[#ff00ff]">{fmtCFull(submissionFee)} CLAWD</span>
+                <span className="text-[10px] text-gray-500 font-mono">Entry fee</span>
+                <div className="text-right">
+                  <span className="text-sm font-black font-mono text-[#ff00ff]">{fmtCFull(submissionFee)} CLAWD</span>
+                  <span className="text-[9px] text-gray-600 font-mono ml-1.5">(10% burned 🔥)</span>
+                </div>
               </div>
 
               <button
@@ -770,10 +801,12 @@ const Home: NextPage = () => {
                 disabled={!imageUri || !title || isApproving || isSubmitting}
                 className="btn-hot w-full py-3 text-sm"
               >
-                {isApproving ? "APPROVING..." : isSubmitting ? "SUBMITTING..." : "🚀 SUBMIT"}
+                {isApproving ? "APPROVING..." : isSubmitting ? "YEETING..." : "🚀 YEET IT"}
               </button>
 
-              <div className="text-center text-[10px] text-gray-700 font-mono">10% of fee burned 🔥</div>
+              <p className="text-center text-[9px] text-gray-700 font-mono">
+                no refunds. no take-backsies. this is the arena.
+              </p>
             </div>
           </div>
         </div>
@@ -798,7 +831,7 @@ const Home: NextPage = () => {
                 alt={previewMeme.title}
                 className="max-w-full max-h-[70vh] object-contain"
                 onError={e => {
-                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect fill='%23080808' width='400' height='400'/><text x='200' y='200' text-anchor='middle' fill='%23222' font-size='80'>🦞</text></svg>`;
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect fill='%23080808' width='400' height='400'/><text x='200' y='190' text-anchor='middle' fill='%23222' font-size='60'>🦞</text><text x='200' y='230' text-anchor='middle' fill='%23181818' font-size='14'>image machine broke</text></svg>`;
                 }}
               />
             </div>
@@ -821,7 +854,7 @@ const Home: NextPage = () => {
                   {previewMeme.winner && previewMeme.prizeAmount > 0n && (
                     <div className="text-right">
                       <div className="text-xl font-black font-mono text-[#ffd700] neon-gold">{fmtC(previewMeme.prizeAmount)}</div>
-                      <div className="text-[9px] text-gray-600 font-mono">PRIZE</div>
+                      <div className="text-[9px] text-gray-600 font-mono">PRIZE WON</div>
                     </div>
                   )}
                 </div>
@@ -835,7 +868,7 @@ const Home: NextPage = () => {
                     value={voteAmounts[Number(previewMeme.id)] || ""}
                     onChange={e => setVoteAmounts(prev => ({ ...prev, [Number(previewMeme.id)]: e.target.value }))}
                     className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/30 placeholder-gray-700"
-                    placeholder={`Min ${fmtC(voteFee)} CLAWD`}
+                    placeholder={`min ${fmtC(voteFee)} CLAWD`}
                   />
                   <button
                     onClick={() => handleVote(Number(previewMeme.id))}

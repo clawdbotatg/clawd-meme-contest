@@ -60,58 +60,12 @@
 }
 
 /* ═══════════════════════════════════════════
-   SCROLLING TICKER MARQUEE
+   CARDS
    ═══════════════════════════════════════════ */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.ticker-track {
-  display: flex;
-  animation: marquee 30s linear infinite;
-  width: max-content;
-}
-
-.ticker-track:hover {
-  animation-play-state: paused;
-}
-
-/* ═══════════════════════════════════════════
-   LIVE PULSE DOT
-   ═══════════════════════════════════════════ */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.7); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(57, 255, 20, 0); }
-}
-
-.live-dot {
-  width: 8px;
-  height: 8px;
-  background: #39ff14;
-  border-radius: 50%;
-  animation: live-pulse 2s ease-in-out infinite;
-}
-
-/* ═══════════════════════════════════════════
-   SCANLINES (subtle)
-   ═══════════════════════════════════════════ */
-.scanlines::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 3px,
-    rgba(0, 0, 0, 0.02) 3px,
-    rgba(0, 0, 0, 0.02) 4px
-  );
+.card-dark {
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
 }
 
 /* ═══════════════════════════════════════════
@@ -121,200 +75,169 @@
   position: relative;
   background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .meme-card:hover {
-  border-color: rgba(255, 0, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 0, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .meme-card.winner-card {
-  border-color: rgba(255, 215, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.15);
 }
 
 .meme-card.winner-card:hover {
-  border-color: rgba(255, 215, 0, 0.6);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.08);
 }
 
 /* ═══════════════════════════════════════════
-   WINNER GLOW
+   POWER BAR
    ═══════════════════════════════════════════ */
-@keyframes winner-glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
-  50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); }
-}
-
-.winner-glow {
-  animation: winner-glow 3s ease-in-out infinite;
+.power-bar {
+  background: linear-gradient(90deg, #ff00ff, #ff33aa);
 }
 
 /* ═══════════════════════════════════════════
-   VOTE BAR
+   BUTTONS — GAME FEEL
    ═══════════════════════════════════════════ */
-@keyframes bar-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-.vote-bar {
-  background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
-  background-size: 200% auto;
-  animation: bar-shimmer 3s linear infinite;
-}
-
-/* ═══════════════════════════════════════════
-   BUTTONS
-   ═══════════════════════════════════════════ */
-.btn-hot {
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #ff00ff;
   color: white;
-  font-weight: 800;
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.1s ease;
+  position: relative;
+  box-shadow: 0 4px 0 #990099, 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-.btn-hot:hover:not(:disabled) {
-  background: #ff33ff;
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+  box-shadow: 0 5px 0 #990099, 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
-.btn-hot:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+.btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #990099, 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
-.btn-hot:disabled {
-  opacity: 0.4;
+.btn-primary:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn-vote {
-  background: linear-gradient(135deg, #00ffff, #0099cc);
+  background: #00cccc;
   color: black;
-  font-weight: 800;
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.1s ease;
+  box-shadow: 0 3px 0 #008888, 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .btn-vote:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 4px 0 #008888, 0 6px 10px rgba(0, 0, 0, 0.4);
+}
+
+.btn-vote:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #008888, 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-vote:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════
+   INPUTS — DARK WITH NEON FOCUS
+   ═══════════════════════════════════════════ */
+.input-dark {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-dark::placeholder {
+  color: #333;
+}
+
+.input-dark:focus {
+  border-color: rgba(255, 0, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 0, 255, 0.08);
 }
 
 /* ═══════════════════════════════════════════
    MODAL
    ═══════════════════════════════════════════ */
 .modal-backdrop {
-  backdrop-filter: blur(20px);
-  background: rgba(0, 0, 0, 0.88);
-}
-
-/* ═══════════════════════════════════════════
-   NEON TEXT
-   ═══════════════════════════════════════════ */
-.neon-gold {
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
-}
-
-.neon-pink {
-  text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
-}
-
-.neon-green {
-  text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+  backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.9);
 }
 
 /* ═══════════════════════════════════════════
    PRIZE PULSE
    ═══════════════════════════════════════════ */
 @keyframes prize-pulse {
-  0%, 100% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
-  50% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.7), 0 0 40px rgba(255, 215, 0, 0.3); }
+  0%, 100% { text-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
+  50% { text-shadow: 0 0 16px rgba(255, 215, 0, 0.5), 0 0 32px rgba(255, 215, 0, 0.15); }
 }
 
 .prize-pulse {
-  animation: prize-pulse 2s ease-in-out infinite;
-}
-
-/* ═══════════════════════════════════════════
-   COUNTDOWN FLICKER
-   ═══════════════════════════════════════════ */
-@keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
-  20%, 24%, 55% { opacity: 0.7; }
-}
-
-.flicker {
-  animation: flicker 3s infinite;
-}
-
-/* ═══════════════════════════════════════════
-   SORT TAB
-   ═══════════════════════════════════════════ */
-.sort-tab {
-  padding: 6px 16px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #666;
-}
-
-.sort-tab:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.sort-tab.active {
-  color: #ff00ff;
-  background: rgba(255, 0, 255, 0.08);
-  border-color: rgba(255, 0, 255, 0.2);
+  animation: prize-pulse 3s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════
    SCROLLBAR
    ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #222;
-  border-radius: 3px;
+  background: #1a1a1a;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff00ff;
+  background: #333;
 }
 
 /* ═══════════════════════════════════════════
-   RESPONSIVE
+   SCAFFOLD-ETH OVERRIDES — hide DaisyUI leaks
    ═══════════════════════════════════════════ */
-@media (max-width: 640px) {
-  .ticker-track {
-    animation-duration: 20s;
-  }
+.btn {
+  all: unset;
+  cursor: pointer;
+}
+
+/* Override any lingering daisy table styles */
+table, th, td {
+  border: none !important;
+  border-collapse: collapse;
 }
