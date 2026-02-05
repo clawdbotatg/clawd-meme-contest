@@ -6,15 +6,15 @@ import "~~/styles/globals.css";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
 export const metadata = getMetadata({
-  title: "🦞 CLAWD Meme Contest",
-  description: "Submit your dankest memes, vote with $CLAWD, and win prizes! 10% of all fees burned 🔥",
+  title: "🦞 CLAWD MEME ARENA",
+  description: "The dankest meme contest on Base. Submit memes, vote with $CLAWD, win prizes. 10% of all fees burned 🔥",
 });
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html suppressHydrationWarning className={``}>
-      <body>
-        <ThemeProvider enableSystem>
+    <html suppressHydrationWarning className="" data-theme="dark">
+      <body className="bg-black">
+        <ThemeProvider enableSystem={false} defaultTheme="dark" forcedTheme="dark">
           <ClientProviders>{children}</ClientProviders>
         </ThemeProvider>
       </body>
