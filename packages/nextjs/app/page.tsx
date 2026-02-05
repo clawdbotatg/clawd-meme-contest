@@ -98,20 +98,20 @@ const Home: NextPage = () => {
   const contestAddress = contractInfo?.address;
 
   const { data: clawdBalance } = useScaffoldReadContract({
-    contractName: "MockCLAWD",
+    contractName: "CLAWD",
     functionName: "balanceOf",
     args: [connectedAddress],
   });
 
   const { data: clawdAllowance } = useScaffoldReadContract({
-    contractName: "MockCLAWD",
+    contractName: "CLAWD",
     functionName: "allowance",
     args: [connectedAddress, contestAddress],
   });
 
   // Contract writes
   const { writeContractAsync: writeContest } = useScaffoldWriteContract("ClawdMemeContest");
-  const { writeContractAsync: writeClawd } = useScaffoldWriteContract("MockCLAWD");
+  const { writeContractAsync: writeClawd } = useScaffoldWriteContract("CLAWD");
 
   // Parse contest info
   const phase = contestInfo ? Number(contestInfo[0]) : 0;

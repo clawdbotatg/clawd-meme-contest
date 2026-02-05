@@ -3,38 +3,61 @@ pragma solidity ^0.8.20;
 
 import "./DeployHelpers.s.sol";
 import "../contracts/ClawdMemeContest.sol";
-import "../contracts/MockERC20.sol";
+import "../contracts/MockCLAWD.sol";
 
 contract DeployMemeContest is ScaffoldETHDeploy {
-    function run() external ScaffoldEthDeployerRunner {
-        // Deploy mock CLAWD token for local testing
-        MockCLAWD mockClawd = new MockCLAWD();
+    // Real CLAWD token on Base
+    address constant BASE_CLAWD = 0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07;
+    // Admin/owner on Base
+    address constant BASE_OWNER = 0x11ce532845cE0eAcdA41f72FDc1C88c335981442;
 
+    function run() external ScaffoldEthDeployerRunner {
         uint256 submissionFee = 615_000 * 1e18; // 615,000 CLAWD
         uint256 voteFee = 308_000 * 1e18;       // 308,000 CLAWD
         uint256 burnBps = 1000;                   // 10%
 
-        ClawdMemeContest contest = new ClawdMemeContest(
-            address(mockClawd),
-            submissionFee,
-            voteFee,
-            burnBps,
-            deployer
-        );
+        if (block.chainid == 31337) {
+            // Local: deploy mock token
+            MockCLAWD mockClawd = new MockCLAWD();
 
-        // Fund deployer and approve for testing convenience
-        // MockCLAWD already minted 1B to deployer in constructor,
-        // but deployer here is the ScaffoldETH deployer address (not this script contract).
-        // Transfer some tokens to deployer for testing
-        mockClawd.mint(deployer, 100_000_000 * 1e18);
+            ClawdMemeContest contest = new ClawdMemeContest(
+                address(mockClawd),
+                submissionFee,
+                voteFee,
+                burnBps,
+                deployer
+            );
 
-        console.logString(
-            string.concat(
-                "ClawdMemeContest deployed at: ",
-                vm.toString(address(contest)),
-                " | MockCLAWD at: ",
-                vm.toString(address(mockClawd))
-            )
-        );
+            mockClawd.mint(deployer, 100_000_000 * 1e18);
+
+            console.logString(
+                string.concat(
+                    "ClawdMemeContest deployed at: ",
+                    vm.toString(address(contest)),
+                    " | MockCLAWD at: ",
+                    vm.toString(address(mockClawd))
+                )
+            );
+        } else {
+            // Base (and other live networks): use real CLAWD token
+            ClawdMemeContest contest = new ClawdMemeContest(
+                BASE_CLAWD,
+                submissionFee,
+                voteFee,
+                burnBps,
+                BASE_OWNER
+            );
+
+            console.logString(
+                string.concat(
+                    "ClawdMemeContest deployed at: ",
+                    vm.toString(address(contest)),
+                    " | CLAWD token: ",
+                    vm.toString(BASE_CLAWD),
+                    " | Owner: ",
+                    vm.toString(BASE_OWNER)
+                )
+            );
+        }
     }
 }
