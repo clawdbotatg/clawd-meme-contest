@@ -60,6 +60,60 @@
 }
 
 /* ═══════════════════════════════════════════
+   SCANLINES (subtle CRT effect)
+   ═══════════════════════════════════════════ */
+.scanlines::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 3px,
+    rgba(0, 0, 0, 0.015) 3px,
+    rgba(0, 0, 0, 0.015) 4px
+  );
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLING TICKER MARQUEE
+   ═══════════════════════════════════════════ */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: flex;
+  animation: marquee 40s linear infinite;
+  width: max-content;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* ═══════════════════════════════════════════
+   LIVE PULSE DOT
+   ═══════════════════════════════════════════ */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
    CARDS
    ═══════════════════════════════════════════ */
 .card-dark {
@@ -78,35 +132,48 @@
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .meme-card:hover {
   border-color: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
 .meme-card.winner-card {
-  border-color: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.12);
 }
 
 .meme-card.winner-card:hover {
-  border-color: rgba(255, 215, 0, 0.3);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.25);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 215, 0, 0.06);
 }
 
 /* ═══════════════════════════════════════════
-   POWER BAR
+   WINNER GLOW
    ═══════════════════════════════════════════ */
-.power-bar {
+@keyframes winner-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 215, 0, 0.08); }
+  50% { box-shadow: 0 0 14px rgba(255, 215, 0, 0.15); }
+}
+
+.winner-glow {
+  animation: winner-glow 3s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   VOTE BAR (inside meme card image)
+   ═══════════════════════════════════════════ */
+.vote-bar {
   background: linear-gradient(90deg, #ff00ff, #ff33aa);
+  transition: width 0.5s ease;
 }
 
 /* ═══════════════════════════════════════════
-   BUTTONS — GAME FEEL
+   BUTTONS — GAME FEEL (3D press)
    ═══════════════════════════════════════════ */
-.btn-primary {
+.btn-hot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -115,53 +182,52 @@
   font-weight: 900;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.1s ease;
-  position: relative;
+  transition: all 0.08s ease;
+  box-shadow: 0 3px 0 #990099, 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-hot:hover:not(:disabled) {
+  transform: translateY(-1px);
   box-shadow: 0 4px 0 #990099, 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 0 #990099, 0 8px 16px rgba(0, 0, 0, 0.5);
-}
-
-.btn-primary:active:not(:disabled) {
+.btn-hot:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 #990099, 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 0 #990099, 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.btn-primary:disabled {
+.btn-hot:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   transform: none;
 }
 
 .btn-vote {
-  background: #00cccc;
+  background: #00bbbb;
   color: black;
   font-weight: 900;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  transition: all 0.1s ease;
-  box-shadow: 0 3px 0 #008888, 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.08s ease;
+  box-shadow: 0 2px 0 #008888, 0 3px 6px rgba(0, 0, 0, 0.25);
 }
 
 .btn-vote:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 #008888, 0 6px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 0 #008888, 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .btn-vote:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 0 1px 0 #008888, 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 0 #008888, 0 2px 3px rgba(0, 0, 0, 0.15);
 }
 
 .btn-vote:disabled {
@@ -170,25 +236,32 @@
 }
 
 /* ═══════════════════════════════════════════
-   INPUTS — DARK WITH NEON FOCUS
+   SORT TABS
    ═══════════════════════════════════════════ */
-.input-dark {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  color: white;
+.sort-tab {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #555;
 }
 
-.input-dark::placeholder {
-  color: #333;
+.sort-tab:hover {
+  color: #999;
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.input-dark:focus {
-  border-color: rgba(255, 0, 255, 0.4);
-  box-shadow: 0 0 0 2px rgba(255, 0, 255, 0.08);
+.sort-tab.active {
+  color: #ff00ff;
+  background: rgba(255, 0, 255, 0.06);
+  border-color: rgba(255, 0, 255, 0.15);
 }
 
 /* ═══════════════════════════════════════════
@@ -200,15 +273,34 @@
 }
 
 /* ═══════════════════════════════════════════
+   NEON TEXT
+   ═══════════════════════════════════════════ */
+.neon-gold {
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* ═══════════════════════════════════════════
    PRIZE PULSE
    ═══════════════════════════════════════════ */
 @keyframes prize-pulse {
-  0%, 100% { text-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
-  50% { text-shadow: 0 0 16px rgba(255, 215, 0, 0.5), 0 0 32px rgba(255, 215, 0, 0.15); }
+  0%, 100% { text-shadow: 0 0 6px rgba(255, 215, 0, 0.2); }
+  50% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.4), 0 0 24px rgba(255, 215, 0, 0.1); }
 }
 
 .prize-pulse {
   animation: prize-pulse 3s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   COUNTDOWN FLICKER
+   ═══════════════════════════════════════════ */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.7; }
+}
+
+.flicker {
+  animation: flicker 4s infinite;
 }
 
 /* ═══════════════════════════════════════════
@@ -229,15 +321,10 @@
 }
 
 /* ═══════════════════════════════════════════
-   SCAFFOLD-ETH OVERRIDES — hide DaisyUI leaks
+   RESPONSIVE
    ═══════════════════════════════════════════ */
-.btn {
-  all: unset;
-  cursor: pointer;
-}
-
-/* Override any lingering daisy table styles */
-table, th, td {
-  border: none !important;
-  border-collapse: collapse;
+@media (max-width: 640px) {
+  .ticker-track {
+    animation-duration: 25s;
+  }
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Address } from "@scaffold-ui/components";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
@@ -15,20 +14,14 @@ import { notification } from "~~/utils/scaffold-eth";
 const PHASE_LABELS = ["CLOSED", "ACCEPTING MEMES", "VOTING IS LIVE", "THE LOBSTER JUDGES", "WINNERS CROWNED"] as const;
 const PHASE_COLORS = ["#555", "#39ff14", "#ff00ff", "#ffd700", "#ffd700"];
 
-// Rotating taglines for the ticker — mix stats with unhinged energy
+// Ticker flavor lines — concise, no emoji spam
 const FLAVOR_LINES = [
-  "🦞 judged by an AI lobster with a crypto wallet",
-  "⚠️ warning: may cause severe meme addiction",
-  "🧠 no thoughts, only memes",
-  "🔥 your memes fuel the burn. the burn fuels the lobster.",
-  "💀 bad memes get zero votes. skill issue.",
-  "👑 become the memelord of Base chain",
-  "🫡 submit memes. receive CLAWD. simple as.",
-  "🦞 claws up if you're degen enough to enter",
-  "📈 number go up when meme go hard",
-  "🗳️ vote with your bags, not your feelings",
-  "🚀 your meme → the arena → glory or dust",
-  "🤖 this entire app was built by an AI. cope.",
+  "judged by an AI lobster with a crypto wallet",
+  "submit memes. receive CLAWD. simple as.",
+  "vote with your bags, not your feelings",
+  "bad memes get zero votes. skill issue.",
+  "this entire app was built by an AI. cope.",
+  "your meme → the arena → glory or dust",
 ];
 
 type Meme = {
@@ -121,24 +114,30 @@ function MemeCard({
             className="w-full h-full object-cover"
             loading="lazy"
             onError={e => {
-              (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect fill='%23080808' width='400' height='300'/><text x='200' y='140' text-anchor='middle' fill='%23222' font-size='60'>🦞</text><text x='200' y='190' text-anchor='middle' fill='%23181818' font-size='14'>image machine broke</text></svg>`;
+              (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect fill='%23080808' width='400' height='300'/><text x='200' y='155' text-anchor='middle' fill='%23222' font-size='12' font-family='monospace'>NO IMAGE</text></svg>`;
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl opacity-30">🦞</div>
+          <div className="w-full h-full flex items-center justify-center text-gray-800 font-mono text-xs">NO IMAGE</div>
         )}
 
         {/* Rank badge */}
         {rank < 3 && (
-          <div className="absolute top-2 left-2 text-lg drop-shadow-lg">
-            {rank === 0 ? "🥇" : rank === 1 ? "🥈" : "🥉"}
+          <div
+            className="absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-mono"
+            style={{
+              backgroundColor: rank === 0 ? "#ffd700" : rank === 1 ? "#aaa" : "#8b6914",
+              color: "#000",
+            }}
+          >
+            {rank + 1}
           </div>
         )}
 
         {/* Winner badge */}
         {meme.winner && (
-          <div className="absolute top-2 right-2 bg-[#ffd700] text-black text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-            CERTIFIED DANK
+          <div className="absolute top-2 right-2 bg-[#ffd700] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+            WINNER
           </div>
         )}
 
@@ -166,7 +165,7 @@ function MemeCard({
         {/* Prize won */}
         {meme.winner && meme.prizeAmount > 0n && (
           <div className="mt-1.5 text-center bg-[#ffd700]/10 rounded py-1">
-            <span className="text-[11px] font-black text-[#ffd700]">🏆 {fmtC(meme.prizeAmount)} CLAWD</span>
+            <span className="text-[11px] font-black text-[#ffd700] font-mono">{fmtC(meme.prizeAmount)} CLAWD</span>
           </div>
         )}
 
@@ -320,19 +319,16 @@ const Home: NextPage = () => {
   /* ═══ Ticker items — mix real stats with unhinged flavor ═══ */
   const tickerItems = useMemo(() => {
     const items: string[] = [];
-    items.push(`🏆 PRIZE POOL: ${fmtC(prizePool)} CLAWD`);
-    // Pick 2 random flavor lines each render
+    items.push(`PRIZE POOL: ${fmtC(prizePool)} CLAWD`);
     const shuffled = [...FLAVOR_LINES].sort(() => Math.random() - 0.5);
     items.push(shuffled[0]);
-    items.push(`🖼️ ${memeCount} MEMES IN THE ARENA`);
+    items.push(`${memeCount} MEMES IN THE ARENA`);
     items.push(shuffled[1]);
-    items.push(`🔥 ${fmtC(totalBurned)} CLAWD BURNED FOREVER`);
+    items.push(`${fmtC(totalBurned)} CLAWD BURNED`);
     items.push(shuffled[2]);
-    if (activeEnd > 0) items.push(`⏰ ${countdown(activeEnd)} LEFT — TICK TOCK`);
-    items.push(`💰 PRIZES: 40% / 25% / 15% / 10% / 10%`);
-    items.push(shuffled[3]);
-    if (submissionFee) items.push(`📝 ENTRY: ${fmtC(submissionFee)} CLAWD (10% burned)`);
-    items.push(shuffled[4]);
+    if (activeEnd > 0) items.push(`${countdown(activeEnd)} REMAINING`);
+    items.push(`PRIZES: 40 / 25 / 15 / 10 / 10%`);
+    if (submissionFee) items.push(`ENTRY: ${fmtC(submissionFee)} CLAWD`);
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prizePool, memeCount, totalBurned, activeEnd, submissionFee]);
@@ -350,7 +346,7 @@ const Home: NextPage = () => {
       try {
         await writeClawd({ functionName: "approve", args: [contestAddress, fee] });
       } catch {
-        notification.error("Approval failed. The blockchain said no. 😤");
+        notification.error("Approval failed");
         setIsApproving(false);
         return;
       }
@@ -360,12 +356,12 @@ const Home: NextPage = () => {
     setIsSubmitting(true);
     try {
       await writeContest({ functionName: "submitMeme", args: [imageUri, title] });
-      notification.success("🦞 MEME DEPLOYED. THE ARENA TREMBLES.");
+      notification.success("Meme submitted!");
       setShowSubmit(false);
       setImageUri("");
       setTitle("");
     } catch {
-      notification.error("Submission failed. Your meme wasn't dank enough. 💀");
+      notification.error("Submission failed");
     }
     setIsSubmitting(false);
   };
@@ -373,7 +369,7 @@ const Home: NextPage = () => {
   const handleVote = async (memeId: number) => {
     const amountStr = voteAmounts[memeId] || "";
     if (!amountStr || Number(amountStr) <= 0) {
-      notification.error("Enter an amount. Free votes don't exist here, ser. 🦞");
+      notification.error("Enter a vote amount");
       return;
     }
     const amount = parseEther(amountStr);
@@ -385,7 +381,7 @@ const Home: NextPage = () => {
       try {
         await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
       } catch {
-        notification.error("Approval denied. Wallet said nah. 🤷");
+        notification.error("Approval failed");
         setIsVoteApproving(false);
         setVotingMemeId(null);
         return;
@@ -396,10 +392,10 @@ const Home: NextPage = () => {
     setVotingMemeId(memeId);
     try {
       await writeContest({ functionName: "vote", args: [BigInt(memeId), amount] });
-      notification.success("⚡ VOTED. POWER LEVEL: INCREASING.");
+      notification.success("Vote cast!");
       setVoteAmounts(prev => ({ ...prev, [memeId]: "" }));
     } catch {
-      notification.error("Vote failed. The meme gods are displeased. 😔");
+      notification.error("Vote failed");
     }
     setVotingMemeId(null);
   };
@@ -409,7 +405,7 @@ const Home: NextPage = () => {
     setIsStarting(true);
     try {
       await writeContest({ functionName: "startContest", args: [BigInt(submissionDays), BigInt(votingDays)] });
-      notification.success("🔥 ARENA OPENED. LET THE MEMES FLOW.");
+      notification.success("Contest started!");
     } catch {
       notification.error("Failed to start");
     }
@@ -434,7 +430,7 @@ const Home: NextPage = () => {
     setIsFunding(true);
     try {
       await writeContest({ functionName: "fundPrizePool", args: [amount] });
-      notification.success("💰 Prize pool funded. The dankness grows.");
+      notification.success("Prize pool funded!");
       setFundAmount("");
     } catch {
       notification.error("Funding failed");
@@ -446,7 +442,7 @@ const Home: NextPage = () => {
     setIsAdvancingVoting(true);
     try {
       await writeContest({ functionName: "advanceToVoting" });
-      notification.success("⚡ VOTING IS LIVE. CHOOSE YOUR FIGHTER.");
+      notification.success("Voting phase started!");
     } catch {
       notification.error("Failed");
     }
@@ -457,7 +453,7 @@ const Home: NextPage = () => {
     setIsAdvancingJudging(true);
     try {
       await writeContest({ functionName: "advanceToJudging" });
-      notification.success("🦞 THE LOBSTER NOW JUDGES YOUR MEMES.");
+      notification.success("Judging phase started!");
     } catch {
       notification.error("Failed");
     }
@@ -471,7 +467,7 @@ const Home: NextPage = () => {
       const ids = winnerIds.split(",").map(s => BigInt(s.trim()));
       const amounts = winnerAmounts.split(",").map(s => parseEther(s.trim()));
       await writeContest({ functionName: "distributePrizes", args: [ids, amounts] });
-      notification.success("🏆 PRIZES DISTRIBUTED. MEMELORDS CROWNED.");
+      notification.success("Prizes distributed!");
     } catch {
       notification.error("Distribution failed");
     }
@@ -488,13 +484,11 @@ const Home: NextPage = () => {
         <div className="max-w-[1600px] mx-auto px-3 py-2.5 flex items-center justify-between gap-3">
           {/* Left: brand + phase */}
           <div className="flex items-center gap-3 min-w-0">
-            <span className="text-xl shrink-0">🦞</span>
             <div className="hidden sm:block">
-              <span className="font-black text-sm tracking-wider">
+              <span className="font-black text-sm tracking-wider font-mono">
                 <span className="text-[#ff00ff]">MEME</span>
-                <span className="text-white/90">ARENA</span>
+                <span className="text-white/80">ARENA</span>
               </span>
-              <span className="text-[9px] text-gray-700 font-mono ml-1.5">by clawd</span>
             </div>
 
             {/* Phase pill */}
@@ -517,28 +511,28 @@ const Home: NextPage = () => {
           {/* Right: stats + submit + connect */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Prize pool inline */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <span className="text-[10px] text-gray-500">🏆</span>
-              <span className="text-[12px] font-black font-mono text-[#ffd700] prize-pulse">{fmtC(prizePool)}</span>
+            <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+              <span className="text-[9px] text-gray-600 font-mono">PRIZE</span>
+              <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(prizePool)}</span>
             </div>
 
             {/* Burned inline */}
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <span className="text-[10px] text-gray-500">🔥</span>
-              <span className="text-[12px] font-black font-mono text-[#ff3366]">{fmtC(totalBurned)}</span>
+            <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+              <span className="text-[9px] text-gray-600 font-mono">BURN</span>
+              <span className="text-[11px] font-black font-mono text-[#ff3366]">{fmtC(totalBurned)}</span>
             </div>
 
             {/* Submit button */}
             {phase === 1 && (
               <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
-                YEET MEME
+                SUBMIT
               </button>
             )}
 
             {/* Admin */}
             {isAdmin && (
-              <button onClick={() => setShowAdmin(!showAdmin)} className="text-gray-600 hover:text-[#ffd700] transition-colors">
-                🔧
+              <button onClick={() => setShowAdmin(!showAdmin)} className="text-gray-600 hover:text-[#ffd700] transition-colors text-[10px] font-mono">
+                ADM
               </button>
             )}
 
@@ -577,13 +571,13 @@ const Home: NextPage = () => {
       <div className="max-w-[1600px] mx-auto px-3 py-3 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <button className={`sort-tab ${sortMode === "top" ? "active" : ""}`} onClick={() => setSortMode("top")}>
-            🔥 top
+            TOP
           </button>
           <button className={`sort-tab ${sortMode === "new" ? "active" : ""}`} onClick={() => setSortMode("new")}>
-            🆕 fresh
+            NEW
           </button>
           <button className={`sort-tab ${sortMode === "winners" ? "active" : ""}`} onClick={() => setSortMode("winners")}>
-            👑 memelords
+            WINNERS
           </button>
         </div>
         <div className="text-[11px] text-gray-600 font-mono">
@@ -616,41 +610,34 @@ const Home: NextPage = () => {
       ) : (
         /* ═══ EMPTY STATE — with personality ═══ */
         <div className="max-w-lg mx-auto px-4 py-20 text-center">
-          <div className="text-7xl mb-5">🦞</div>
           {phase === 0 ? (
             <>
-              <h2 className="text-2xl font-black text-white mb-2">THE ARENA IS CLOSED</h2>
-              <p className="text-gray-500 font-mono text-sm mb-1">
-                No active contest right now.
-              </p>
+              <h2 className="text-2xl font-black text-gray-500 mb-2 font-mono">ARENA CLOSED</h2>
               <p className="text-gray-700 font-mono text-xs">
-                The lobster is resting. Come back when the memes flow again.
+                No active contest. Check back later.
               </p>
             </>
           ) : phase === 1 ? (
             <>
-              <h2 className="text-2xl font-black text-white mb-2">ZERO MEMES???</h2>
-              <p className="text-gray-500 font-mono text-sm mb-1">
-                The arena is open but nobody{"'"}s brave enough to go first.
-              </p>
-              <p className="text-gray-700 font-mono text-xs mb-6">
-                Be the main character. Submit first. Become legend.
+              <h2 className="text-2xl font-black text-white mb-2 font-mono">NO MEMES YET</h2>
+              <p className="text-gray-600 font-mono text-xs mb-6">
+                The arena is open. Be first.
               </p>
               <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
-                I{"'"}LL GO FIRST 🫡
+                SUBMIT FIRST
               </button>
             </>
           ) : phase === 4 && sortMode === "winners" ? (
             <>
-              <h2 className="text-2xl font-black text-white mb-2">NO WINNERS YET</h2>
-              <p className="text-gray-500 font-mono text-sm">
-                The lobster hasn{"'"}t crowned anyone. Switch to &quot;top&quot; to see all entries.
+              <h2 className="text-2xl font-black text-gray-500 mb-2 font-mono">NO WINNERS YET</h2>
+              <p className="text-gray-600 font-mono text-xs">
+                Switch to TOP to see all entries.
               </p>
             </>
           ) : (
             <>
-              <h2 className="text-2xl font-black text-gray-600 mb-2">NOTHING HERE</h2>
-              <p className="text-gray-700 font-mono text-sm">
+              <h2 className="text-2xl font-black text-gray-600 mb-2 font-mono">EMPTY</h2>
+              <p className="text-gray-700 font-mono text-xs">
                 Try a different tab.
               </p>
             </>
@@ -660,27 +647,29 @@ const Home: NextPage = () => {
 
       {/* ═══ FOOTER — compact, personality ═══ */}
       <footer className="border-t border-white/[0.03] py-5 mt-8">
-        <div className="max-w-[1600px] mx-auto px-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
+        <div className="max-w-[1600px] mx-auto px-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
             <span>prizes: 40/25/15/10/10%</span>
-            <span className="text-gray-800">•</span>
-            <span>10% of everything burned 🔥</span>
-            <span className="text-gray-800">•</span>
-            <span>submit → vote → lobster judges → win</span>
+            <span className="text-gray-800">·</span>
+            <span>10% burned</span>
+            <span className="text-gray-800">·</span>
+            <span>submit → vote → judge → win</span>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
-            {contestAddress && <Address address={contestAddress} />}
-            <span className="text-gray-800">•</span>
+          <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
+            {contestAddress && (
+              <span className="text-gray-700">{contestAddress.slice(0, 6)}...{contestAddress.slice(-4)}</span>
+            )}
+            <span className="text-gray-800">·</span>
             <a
               href="https://clawdbotatg.eth.limo"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors"
             >
-              built by clawd 🦞
+              built by clawd
             </a>
-            <span className="text-gray-800">•</span>
-            <span className="text-gray-800">unaudited. degen at your own risk.</span>
+            <span className="text-gray-800">·</span>
+            <span className="text-gray-800">unaudited. degen responsibly.</span>
           </div>
         </div>
       </footer>
@@ -690,52 +679,52 @@ const Home: NextPage = () => {
         <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowAdmin(false)}>
           <div className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-black text-[#ffd700]">🔧 Lobster Control Panel</h3>
+              <h3 className="text-sm font-black text-[#ffd700] font-mono tracking-wider uppercase">ADMIN</h3>
               <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">✕</button>
             </div>
 
             <div className="space-y-3">
               {(phase === 0 || phase === 4) && (
                 <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Open the Arena</div>
+                  <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Start Contest</div>
                   <div className="flex gap-2 mb-2">
                     <input type="number" value={submissionDays} onChange={e => setSubmissionDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
                     <span className="text-gray-600 self-center text-[10px]">sub</span>
                     <input type="number" value={votingDays} onChange={e => setVotingDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
                     <span className="text-gray-600 self-center text-[10px]">vote</span>
                   </div>
-                  <button onClick={handleStartContest} disabled={isStarting} className="btn-hot w-full py-2 text-xs bg-[#39ff14] hover:bg-[#44ff22]">
-                    {isStarting ? "Opening..." : "🚀 Open Arena"}
+                  <button onClick={handleStartContest} disabled={isStarting} className="btn-hot w-full py-2 text-xs bg-[#39ff14] hover:bg-[#44ff22]" style={{ boxShadow: "0 3px 0 #1a8a0a" }}>
+                    {isStarting ? "Starting..." : "START"}
                   </button>
                 </div>
               )}
 
               <div className="bg-white/[0.03] rounded-lg p-3">
-                <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Fund the Dankness</div>
+                <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Fund Prize Pool</div>
                 <input type="text" value={fundAmount} onChange={e => setFundAmount(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none focus:border-[#ffd700]/50" placeholder="CLAWD" />
-                <button onClick={handleFundPrizePool} disabled={isFunding || isFundApproving} className="btn-hot w-full py-2 text-xs bg-[#ffd700] hover:bg-[#ffdd33] text-black">
-                  {isFundApproving ? "Approving..." : isFunding ? "Funding..." : "💰 Fund"}
+                <button onClick={handleFundPrizePool} disabled={isFunding || isFundApproving} className="btn-hot w-full py-2 text-xs bg-[#ffd700] hover:bg-[#ffdd33] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
+                  {isFundApproving ? "Approving..." : isFunding ? "Funding..." : "FUND"}
                 </button>
               </div>
 
               {phase === 1 && (
                 <button onClick={handleAdvanceToVoting} disabled={isAdvancingVoting} className="btn-hot w-full py-2 text-xs">
-                  {isAdvancingVoting ? "..." : "⚡ → Let Them Vote"}
+                  {isAdvancingVoting ? "..." : "ADVANCE TO VOTING"}
                 </button>
               )}
               {phase === 2 && (
-                <button onClick={handleAdvanceToJudging} disabled={isAdvancingJudging} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black">
-                  {isAdvancingJudging ? "..." : "🦞 → Lobster Judges Now"}
+                <button onClick={handleAdvanceToJudging} disabled={isAdvancingJudging} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
+                  {isAdvancingJudging ? "..." : "ADVANCE TO JUDGING"}
                 </button>
               )}
 
               {phase === 3 && (
                 <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-400 mb-2 font-mono uppercase tracking-wider">Crown the Memelords</div>
+                  <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Distribute Prizes</div>
                   <input type="text" value={winnerIds} onChange={e => setWinnerIds(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-1.5 focus:outline-none" placeholder="IDs: 1,3,5" />
                   <input type="text" value={winnerAmounts} onChange={e => setWinnerAmounts(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none" placeholder="Amounts: 1000000,500000" />
-                  <button onClick={handleDistributePrizes} disabled={isDistributing} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black">
-                    {isDistributing ? "..." : "👑 Crown Winners"}
+                  <button onClick={handleDistributePrizes} disabled={isDistributing} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
+                    {isDistributing ? "..." : "DISTRIBUTE"}
                   </button>
                 </div>
               )}
@@ -749,11 +738,11 @@ const Home: NextPage = () => {
         <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowSubmit(false)}>
           <div className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-1">
-              <h3 className="text-base font-black text-white">Yeet a Meme Into the Arena</h3>
+              <h3 className="text-sm font-black text-white font-mono tracking-wider uppercase">SUBMIT MEME</h3>
               <button onClick={() => setShowSubmit(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
             <p className="text-[10px] text-gray-600 font-mono mb-4">
-              your meme will be judged by an AI lobster. choose wisely.
+              judged by an AI lobster. choose wisely.
             </p>
 
             <div className="space-y-3">
@@ -764,7 +753,7 @@ const Home: NextPage = () => {
                   value={imageUri}
                   onChange={e => setImageUri(e.target.value)}
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="https://i.imgur.com/your-dank-meme.jpg"
+                  placeholder="https://..."
                 />
               </div>
 
@@ -784,7 +773,7 @@ const Home: NextPage = () => {
                   value={title}
                   onChange={e => setTitle(e.target.value.slice(0, 100))}
                   className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="when the lobster judges your meme and..."
+                  placeholder="Name your meme"
                 />
               </div>
 
@@ -792,7 +781,7 @@ const Home: NextPage = () => {
                 <span className="text-[10px] text-gray-500 font-mono">Entry fee</span>
                 <div className="text-right">
                   <span className="text-sm font-black font-mono text-[#ff00ff]">{fmtCFull(submissionFee)} CLAWD</span>
-                  <span className="text-[9px] text-gray-600 font-mono ml-1.5">(10% burned 🔥)</span>
+                  <span className="text-[9px] text-gray-600 font-mono ml-1.5">(10% burned)</span>
                 </div>
               </div>
 
@@ -801,11 +790,11 @@ const Home: NextPage = () => {
                 disabled={!imageUri || !title || isApproving || isSubmitting}
                 className="btn-hot w-full py-3 text-sm"
               >
-                {isApproving ? "APPROVING..." : isSubmitting ? "YEETING..." : "🚀 YEET IT"}
+                {isApproving ? "APPROVING..." : isSubmitting ? "SUBMITTING..." : "SUBMIT"}
               </button>
 
               <p className="text-center text-[9px] text-gray-700 font-mono">
-                no refunds. no take-backsies. this is the arena.
+                no refunds.
               </p>
             </div>
           </div>
@@ -831,7 +820,7 @@ const Home: NextPage = () => {
                 alt={previewMeme.title}
                 className="max-w-full max-h-[70vh] object-contain"
                 onError={e => {
-                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect fill='%23080808' width='400' height='400'/><text x='200' y='190' text-anchor='middle' fill='%23222' font-size='60'>🦞</text><text x='200' y='230' text-anchor='middle' fill='%23181818' font-size='14'>image machine broke</text></svg>`;
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect fill='%23080808' width='400' height='400'/><text x='200' y='205' text-anchor='middle' fill='%23222' font-size='12' font-family='monospace'>NO IMAGE</text></svg>`;
                 }}
               />
             </div>
@@ -841,10 +830,9 @@ const Home: NextPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-lg font-black text-white truncate">{previewMeme.title}</h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] text-gray-500">by</span>
-                    <Address address={previewMeme.creator} />
-                  </div>
+                  <span className="text-[10px] text-gray-600 font-mono mt-0.5 block">
+                    {previewMeme.creator.slice(0, 6)}...{previewMeme.creator.slice(-4)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right">
@@ -875,7 +863,7 @@ const Home: NextPage = () => {
                     disabled={votingMemeId === Number(previewMeme.id)}
                     className="btn-hot px-6 py-2.5 text-sm"
                   >
-                    {votingMemeId === Number(previewMeme.id) ? "..." : "⚡ VOTE"}
+                    {votingMemeId === Number(previewMeme.id) ? "..." : "VOTE"}
                   </button>
                 </div>
               )}
