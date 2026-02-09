@@ -10,9 +10,7 @@ import { Header } from "~~/components/Header";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 
-
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
-
   return (
     <>
       <div className={`flex flex-col min-h-screen`}>
@@ -41,12 +39,19 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
 
   return (
     <WagmiProvider config={wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-    <RainbowKitProvider avatar={BlockieAvatar} theme={mounted ? darkTheme({ accentColor: "#ff00ff", borderRadius: "medium" }) : darkTheme({ accentColor: "#ff00ff", borderRadius: "medium" })}>
-      <ProgressBar height="3px" color="#ff00ff" />
-      <ScaffoldEthApp>{children}</ScaffoldEthApp>
-    </RainbowKitProvider>
-    </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          avatar={BlockieAvatar}
+          theme={
+            mounted
+              ? darkTheme({ accentColor: "#ff00ff", borderRadius: "medium" })
+              : darkTheme({ accentColor: "#ff00ff", borderRadius: "medium" })
+          }
+        >
+          <ProgressBar height="3px" color="#ff00ff" />
+          <ScaffoldEthApp>{children}</ScaffoldEthApp>
+        </RainbowKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 };

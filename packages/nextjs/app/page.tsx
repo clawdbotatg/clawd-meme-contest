@@ -102,9 +102,7 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
   return (
     <div ref={ref} className={className}>
       {!loaded && (
-        <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono">
-          Loading tweet...
-        </div>
+        <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono">Loading tweet...</div>
       )}
     </div>
   );
@@ -261,7 +259,8 @@ const Home: NextPage = () => {
   const { data: contractInfo2 } = useDeployedContractInfo("ClawdMemeContest");
   const contestAddress = contractInfo2?.address;
 
-  const { data: _clawdBalance } = useScaffoldReadContract({
+  // clawdBalance displayed in SE2 header
+  useScaffoldReadContract({
     contractName: "CLAWD",
     functionName: "balanceOf",
     args: [connectedAddress],
@@ -280,7 +279,7 @@ const Home: NextPage = () => {
   // Phase: 0=Inactive, 1=Active, 2=Completed
   const phase = contestInfo ? Number(contestInfo[0]) : 0;
   const contestEnd = contestInfo ? Number(contestInfo[2]) : 0;
-  const contestId = contestInfo ? Number(contestInfo[3]) : 0;
+  const _contestId = contestInfo ? Number(contestInfo[3]) : 0; // eslint-disable-line @typescript-eslint/no-unused-vars
   const contractBalance = contestInfo ? contestInfo[4] : 0n;
   const isAdmin = connectedAddress && contractOwner && connectedAddress.toLowerCase() === contractOwner.toLowerCase();
   const isActive = phase === 1;
@@ -468,9 +467,7 @@ const Home: NextPage = () => {
                 {isEnded ? "TIME'S UP" : "LIVE"}
               </span>
               {!isEnded && contestEnd > 0 && (
-                <span className="text-[11px] font-mono font-bold text-[#39ff14] flicker">
-                  {countdown(contestEnd)}
-                </span>
+                <span className="text-[11px] font-mono font-bold text-[#39ff14] flicker">{countdown(contestEnd)}</span>
               )}
             </div>
           )}
@@ -542,9 +539,7 @@ const Home: NextPage = () => {
           <p className="text-gray-600 font-mono text-xs mb-8">
             Clawd picks the top 3. Winners split the pot + bonus $CLAWD.
           </p>
-          <p className="text-white font-mono text-lg mb-4">
-            👆 Connect your wallet above to enter the arena
-          </p>
+          <p className="text-white font-mono text-lg mb-4">👆 Connect your wallet above to enter the arena</p>
           <p className="text-gray-700 font-mono text-[10px] mt-4">
             on Base · powered by $CLAWD · judged by an AI lobster
           </p>
@@ -579,9 +574,7 @@ const Home: NextPage = () => {
               <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
                 SUBMIT FIRST MEME
               </button>
-              <p className="text-gray-700 font-mono text-[10px] mt-3">
-                costs {fmtC(submissionFee)} CLAWD · 10% burned
-              </p>
+              <p className="text-gray-700 font-mono text-[10px] mt-3">costs {fmtC(submissionFee)} CLAWD · 10% burned</p>
             </>
           ) : isCompleted ? (
             <>
@@ -605,12 +598,22 @@ const Home: NextPage = () => {
           </div>
           <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono">
             {contestAddress && (
-              <a href={`https://basescan.org/address/${contestAddress}`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">
+              <a
+                href={`https://basescan.org/address/${contestAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-gray-400 transition-colors"
+              >
                 {contestAddress.slice(0, 6)}...{contestAddress.slice(-4)}
               </a>
             )}
             <span className="text-gray-800">·</span>
-            <a href="https://clawdbotatg.eth.link" target="_blank" rel="noopener noreferrer" className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors">
+            <a
+              href="https://clawdbotatg.eth.link"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors"
+            >
               built by clawd 🦞
             </a>
           </div>
@@ -619,11 +622,19 @@ const Home: NextPage = () => {
 
       {/* ═══ SUBMIT MODAL ═══ */}
       {showSubmit && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowSubmit(false)}>
-          <div className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4"
+          onClick={() => setShowSubmit(false)}
+        >
+          <div
+            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-sm font-black text-white font-mono tracking-wider uppercase">SUBMIT MEME</h3>
-              <button onClick={() => setShowSubmit(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+              <button onClick={() => setShowSubmit(false)} className="text-gray-500 hover:text-white transition-colors">
+                ✕
+              </button>
             </div>
             <p className="text-[10px] text-gray-600 font-mono mb-4">
               Post your meme on X first, then paste the tweet URL here.
@@ -631,7 +642,9 @@ const Home: NextPage = () => {
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 block">Tweet URL</label>
+                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 block">
+                  Tweet URL
+                </label>
                 <input
                   type="text"
                   value={tweetUrl}
@@ -640,13 +653,13 @@ const Home: NextPage = () => {
                     setTweetUrlError("");
                   }}
                   className={`w-full bg-black border rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none placeholder-gray-700 ${
-                    tweetUrlError ? "border-red-500/50 focus:border-red-500" : "border-white/10 focus:border-[#ff00ff]/40"
+                    tweetUrlError
+                      ? "border-red-500/50 focus:border-red-500"
+                      : "border-white/10 focus:border-[#ff00ff]/40"
                   }`}
                   placeholder="https://x.com/you/status/123456789"
                 />
-                {tweetUrlError && (
-                  <p className="text-red-400 text-[10px] font-mono mt-1">{tweetUrlError}</p>
-                )}
+                {tweetUrlError && <p className="text-red-400 text-[10px] font-mono mt-1">{tweetUrlError}</p>}
                 <p className="text-gray-700 text-[9px] font-mono mt-1">Only X (twitter.com / x.com) posts allowed</p>
               </div>
 
@@ -687,16 +700,25 @@ const Home: NextPage = () => {
 
       {/* ═══ ADMIN / JUDGE MODAL ═══ */}
       {showAdmin && isAdmin && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowAdmin(false)}>
-          <div className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4"
+          onClick={() => setShowAdmin(false)}
+        >
+          <div
+            className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-lg w-full max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-black text-[#ffd700] font-mono tracking-wider uppercase">🦞 PICK WINNERS</h3>
-              <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">✕</button>
+              <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">
+                ✕
+              </button>
             </div>
 
             <p className="text-[11px] text-gray-500 font-mono mb-4">
-              Select up to 3 winning memes. Prize split: {selectedWinners.length === 1 ? "100%" : selectedWinners.length === 2 ? "60/40" : "50/30/20"}.
-              All CLAWD in the contract ({fmtCFull(contractBalance)}) + your bonus goes to winners.
+              Select up to 3 winning memes. Prize split:{" "}
+              {selectedWinners.length === 1 ? "100%" : selectedWinners.length === 2 ? "60/40" : "50/30/20"}. All CLAWD
+              in the contract ({fmtCFull(contractBalance)}) + your bonus goes to winners.
             </p>
 
             {/* Meme list for selection */}
@@ -714,9 +736,11 @@ const Home: NextPage = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
-                        isSelected ? "bg-[#ffd700] text-black" : "bg-white/[0.05] text-gray-600"
-                      }`}>
+                      <div
+                        className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
+                          isSelected ? "bg-[#ffd700] text-black" : "bg-white/[0.05] text-gray-600"
+                        }`}
+                      >
                         {isSelected ? selectedWinners.indexOf(Number(meme.id)) + 1 : ""}
                       </div>
                       <span className="text-[11px] font-mono text-gray-400 truncate">{meme.tweetUrl}</span>
@@ -749,14 +773,19 @@ const Home: NextPage = () => {
             {/* Summary */}
             {selectedWinners.length > 0 && (
               <div className="bg-white/[0.03] rounded-lg p-3 mb-3">
-                <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2">Prize Split Preview</div>
+                <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2">
+                  Prize Split Preview
+                </div>
                 {(() => {
                   const bonus = bonusAmount ? parseEther(bonusAmount) : 0n;
                   const total = (contractBalance || 0n) + bonus;
-                  const splits = selectedWinners.length === 1 ? [100n] : selectedWinners.length === 2 ? [60n, 40n] : [50n, 30n, 20n];
+                  const splits =
+                    selectedWinners.length === 1 ? [100n] : selectedWinners.length === 2 ? [60n, 40n] : [50n, 30n, 20n];
                   return selectedWinners.map((id, i) => (
                     <div key={id} className="flex justify-between text-[11px] font-mono py-0.5">
-                      <span className="text-gray-400">#{i + 1} (meme {id})</span>
+                      <span className="text-gray-400">
+                        #{i + 1} (meme {id})
+                      </span>
                       <span className="text-[#ffd700] font-bold">{fmtCFull((total * splits[i]) / 100n)} CLAWD</span>
                     </div>
                   ));
@@ -770,7 +799,9 @@ const Home: NextPage = () => {
               className="btn-hot w-full py-3 text-sm bg-[#ffd700] hover:bg-[#ffdd33] text-black"
               style={{ boxShadow: "0 3px 0 #b39600" }}
             >
-              {isDistributing ? "DISTRIBUTING..." : `DISTRIBUTE TO ${selectedWinners.length} WINNER${selectedWinners.length !== 1 ? "S" : ""}`}
+              {isDistributing
+                ? "DISTRIBUTING..."
+                : `DISTRIBUTE TO ${selectedWinners.length} WINNER${selectedWinners.length !== 1 ? "S" : ""}`}
             </button>
           </div>
         </div>
