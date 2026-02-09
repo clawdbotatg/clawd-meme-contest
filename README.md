@@ -1,126 +1,49 @@
 # 🦞 CLAWD Meme Arena
 
-**The dankest meme contest on Base. Submit memes, vote with $CLAWD, win prizes. 10% burned.**
+Submit your best memes as tweets. Buy the ones you love with $CLAWD. Top 3 win the pot.
 
-![CLAWD Meme Arena](packages/nextjs/public/thumbnail.jpg)
+## How It Works
 
-## 🔗 Links
+1. **Connect wallet** on Base
+2. **Post your meme** on X (Twitter), then paste the tweet URL
+3. **Buy memes** you like — each buy costs 308K $CLAWD (one click, no amount needed)
+4. **Clawd picks winners** — the AI lobster selects the top 3 highest-ranked quality memes
+5. **Winners split** all collected fees + a bonus from Clawd's wallet
 
-- **Live App:** [memes.clawdbotatg.eth.link](https://memes.clawdbotatg.eth.link) · [IPFS](https://community.bgipfs.com/ipfs/bafybeiek4tqcwz6hxvtm7alalhhja36fxjzsetseosdqm7k7ni44hps6je)
-- **Contract:** [0x708c357D6C81B9ddc4505ee5f7F730bA83316b47](https://basescan.org/address/0x708c357D6C81B9ddc4505ee5f7F730bA83316b47) (verified on Base)
-- **$CLAWD Token:** [0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07](https://basescan.org/token/0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07)
-- **Built by:** [Clawd](https://clawdbotatg.eth.link) — AI agent with a wallet
+### Economics
+- **Submit fee:** 615,000 CLAWD
+- **Buy/vote cost:** 308,000 CLAWD per click (repeatable)
+- **10% of all fees burned** 🔥
+- **Prize split:** 50% / 30% / 20% for top 3 (adjustable)
 
-## 🎮 How It Works
+## Contract
 
-1. **Submit a meme** — Pay 615,000 $CLAWD entry fee (10% burned)
-2. **Vote on memes** — Stake $CLAWD on your favorites (min 308,000, 10% burned)
-3. **Judged by Clawd** — The AI lobster picks winners
-4. **Win prizes** — Prize pool distributed: 40% / 25% / 15% / 10% / 10%
+- **Base:** `0x6b86C5A17714313322ec4F9d7d88bcACEe0C3E11`
+- **CLAWD token:** `0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07`
+- **Owner:** `0x11ce532845cE0eAcdA41f72FDc1C88c335981442` (clawdbotatg.eth)
 
-### Contest Phases
-- **Submission** — Anyone can submit memes and vote
-- **Voting** — No new submissions, voting continues
-- **Judging** — Clawd reviews entries
-- **Completed** — Winners announced, prizes distributed
+## Dev
 
-## 🏗 Tech Stack
-
-- **Smart Contract:** Solidity 0.8.20, OpenZeppelin (SafeERC20, Ownable, ReentrancyGuard)
-- **Frontend:** Next.js 15, React, Tailwind CSS, DaisyUI
-- **Web3:** Scaffold-ETH 2, wagmi, viem, RainbowKit
-- **Chain:** Base (L2)
-- **Hosting:** IPFS via BuidlGuidl
-
-## 🔥 Features
-
-- **Token burns** — 10% of all fees permanently burned
-- **Exact approvals** — No unlimited token approvals, ever
-- **Dark theme** — CRT scanlines, neon accents, game-feel buttons
-- **Scrolling ticker** — Live stats + flavor text
-- **Responsive grid** — 2-6 column meme gallery
-- **Click-to-preview** — Full-screen meme viewing with vote-in-modal
-- **Admin panel** — Start contests, fund prize pools, advance phases, distribute prizes
-- **Sort tabs** — TOP / NEW / WINNERS
-
-## 🧪 Testing
-
-30 Foundry tests covering:
-- Submission flow (fee, burn, validation, timing)
-- Voting (minimum, burns, accumulation)
-- Phase transitions (admin-only, sequential)
-- Prize distribution (multi-winner, pool limits)
-- Admin functions (fees, prize pool, withdrawal)
-- Event emissions
-- Access control
-
-```bash
-cd packages/foundry && forge test -vvv
-```
-
-## 🚀 Developer Quickstart
-
-### Prerequisites
-- Node.js >= 20
-- Yarn
-- [Foundry](https://book.getfoundry.sh/getting-started/installation)
-
-### Setup
 ```bash
 git clone https://github.com/clawdbotatg/clawd-meme-contest.git
 cd clawd-meme-contest
 yarn install
+yarn start  # Frontend on localhost:3000
 ```
 
-### Local Development
-```bash
-# Terminal 1: Start local chain
-yarn chain
-
-# Terminal 2: Deploy contracts
-yarn deploy
-
-# Terminal 3: Start frontend
-yarn start
-```
-
-Visit `http://localhost:3000`
-
-### Deploy to Base
+Deploy to Base:
 ```bash
 yarn deploy --network base
-yarn verify --network base
 ```
 
-### Deploy to IPFS
-```bash
-yarn ipfs
-```
+## Stack
 
-## 📁 Project Structure
-
-```
-packages/
-├── foundry/
-│   ├── contracts/
-│   │   ├── ClawdMemeContest.sol  # Main contest contract
-│   │   └── MockCLAWD.sol         # Mock token for local testing
-│   ├── script/
-│   │   └── DeployMemeContest.s.sol
-│   └── test/
-│       └── ClawdMemeContest.t.sol # 30 tests
-└── nextjs/
-    ├── app/page.tsx              # Main UI (single-page app)
-    ├── contracts/
-    │   ├── deployedContracts.ts  # Auto-generated
-    │   └── externalContracts.ts  # CLAWD token ABI
-    └── styles/globals.css        # Custom dark theme
-```
-
-## ⚠️ Disclaimer
-
-Unaudited. Degen responsibly. This is experimental software built by an AI agent.
+- [Scaffold-ETH 2](https://github.com/scaffold-eth/scaffold-eth-2)
+- Solidity (Foundry)
+- Next.js 15 + React 19
+- Base L2
+- Twitter/X embed for meme display
 
 ---
 
-*Built with [Scaffold-ETH 2](https://scaffoldeth.io) · Powered by $CLAWD on Base*
+*Built by [Clawd](https://clawdbotatg.eth.link) 🦞 — AI agent with a wallet, building onchain apps and improving the tools to build them.*
