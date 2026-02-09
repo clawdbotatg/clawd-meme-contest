@@ -1,83 +1,126 @@
-# 🏗 Scaffold-ETH 2
+# 🦞 CLAWD Meme Arena
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+**The dankest meme contest on Base. Submit memes, vote with $CLAWD, win prizes. 10% burned.**
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+![CLAWD Meme Arena](packages/nextjs/public/thumbnail.jpg)
 
-> [!NOTE]
-> 🤖 Scaffold-ETH 2 is AI-ready! It has everything agents need to build on Ethereum. Check `.agents/`, `.claude/`, `.opencode` or `.cursor/` for more info.
+## 🔗 Links
 
-⚙️ Built using NextJS, RainbowKit, Foundry, Wagmi, Viem, and Typescript.
+- **Live App:** [memes.clawdbotatg.eth.limo](https://memes.clawdbotatg.eth.limo) · [IPFS](https://community.bgipfs.com/ipfs/bafybeiek4tqcwz6hxvtm7alalhhja36fxjzsetseosdqm7k7ni44hps6je)
+- **Contract:** [0x708c357D6C81B9ddc4505ee5f7F730bA83316b47](https://basescan.org/address/0x708c357D6C81B9ddc4505ee5f7F730bA83316b47) (verified on Base)
+- **$CLAWD Token:** [0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07](https://basescan.org/token/0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07)
+- **Built by:** [Clawd](https://clawdbotatg.eth.limo) — AI agent with a wallet
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+## 🎮 How It Works
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+1. **Submit a meme** — Pay 615,000 $CLAWD entry fee (10% burned)
+2. **Vote on memes** — Stake $CLAWD on your favorites (min 308,000, 10% burned)
+3. **Judged by Clawd** — The AI lobster picks winners
+4. **Win prizes** — Prize pool distributed: 40% / 25% / 15% / 10% / 10%
 
-## Requirements
+### Contest Phases
+- **Submission** — Anyone can submit memes and vote
+- **Voting** — No new submissions, voting continues
+- **Judging** — Clawd reviews entries
+- **Completed** — Winners announced, prizes distributed
 
-Before you begin, you need to install the following tools:
+## 🏗 Tech Stack
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+- **Smart Contract:** Solidity 0.8.20, OpenZeppelin (SafeERC20, Ownable, ReentrancyGuard)
+- **Frontend:** Next.js 15, React, Tailwind CSS, DaisyUI
+- **Web3:** Scaffold-ETH 2, wagmi, viem, RainbowKit
+- **Chain:** Base (L2)
+- **Hosting:** IPFS via BuidlGuidl
 
-## Quickstart
+## 🔥 Features
 
-To get started with Scaffold-ETH 2, follow the steps below:
+- **Token burns** — 10% of all fees permanently burned
+- **Exact approvals** — No unlimited token approvals, ever
+- **Dark theme** — CRT scanlines, neon accents, game-feel buttons
+- **Scrolling ticker** — Live stats + flavor text
+- **Responsive grid** — 2-6 column meme gallery
+- **Click-to-preview** — Full-screen meme viewing with vote-in-modal
+- **Admin panel** — Start contests, fund prize pools, advance phases, distribute prizes
+- **Sort tabs** — TOP / NEW / WINNERS
 
-1. Install dependencies if it was skipped in CLI:
+## 🧪 Testing
 
+30 Foundry tests covering:
+- Submission flow (fee, burn, validation, timing)
+- Voting (minimum, burns, accumulation)
+- Phase transitions (admin-only, sequential)
+- Prize distribution (multi-winner, pool limits)
+- Admin functions (fees, prize pool, withdrawal)
+- Event emissions
+- Access control
+
+```bash
+cd packages/foundry && forge test -vvv
 ```
-cd my-dapp-example
+
+## 🚀 Developer Quickstart
+
+### Prerequisites
+- Node.js >= 20
+- Yarn
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+### Setup
+```bash
+git clone https://github.com/clawdbotatg/clawd-meme-contest.git
+cd clawd-meme-contest
 yarn install
 ```
 
-2. Run a local network in the first terminal:
-
-```
+### Local Development
+```bash
+# Terminal 1: Start local chain
 yarn chain
-```
 
-This command starts a local Ethereum network using Foundry. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/foundry/foundry.toml`.
-
-3. On a second terminal, deploy the test contract:
-
-```
+# Terminal 2: Deploy contracts
 yarn deploy
-```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/foundry/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/foundry/script` to deploy the contract to the network. You can also customize the deploy script.
-
-4. On a third terminal, start your NextJS app:
-
-```
+# Terminal 3: Start frontend
 yarn start
 ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+Visit `http://localhost:3000`
 
-Run smart contract test with `yarn foundry:test`
+### Deploy to Base
+```bash
+yarn deploy --network base
+yarn verify --network base
+```
 
-- Edit your smart contracts in `packages/foundry/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/foundry/script`
+### Deploy to IPFS
+```bash
+yarn ipfs
+```
 
+## 📁 Project Structure
 
-## Documentation
+```
+packages/
+├── foundry/
+│   ├── contracts/
+│   │   ├── ClawdMemeContest.sol  # Main contest contract
+│   │   └── MockCLAWD.sol         # Mock token for local testing
+│   ├── script/
+│   │   └── DeployMemeContest.s.sol
+│   └── test/
+│       └── ClawdMemeContest.t.sol # 30 tests
+└── nextjs/
+    ├── app/page.tsx              # Main UI (single-page app)
+    ├── contracts/
+    │   ├── deployedContracts.ts  # Auto-generated
+    │   └── externalContracts.ts  # CLAWD token ABI
+    └── styles/globals.css        # Custom dark theme
+```
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+## ⚠️ Disclaimer
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+Unaudited. Degen responsibly. This is experimental software built by an AI agent.
 
-## Contributing to Scaffold-ETH 2
+---
 
-We welcome contributions to Scaffold-ETH 2!
-
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+*Built with [Scaffold-ETH 2](https://scaffoldeth.io) · Powered by $CLAWD on Base*
