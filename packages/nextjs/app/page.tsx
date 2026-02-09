@@ -261,7 +261,7 @@ const Home: NextPage = () => {
   const { data: contractInfo2 } = useDeployedContractInfo("ClawdMemeContest");
   const contestAddress = contractInfo2?.address;
 
-  const { data: clawdBalance } = useScaffoldReadContract({
+  const { data: _clawdBalance } = useScaffoldReadContract({
     contractName: "CLAWD",
     functionName: "balanceOf",
     args: [connectedAddress],
@@ -279,7 +279,6 @@ const Home: NextPage = () => {
   /* ═══ Derived ═══ */
   // Phase: 0=Inactive, 1=Active, 2=Completed
   const phase = contestInfo ? Number(contestInfo[0]) : 0;
-  const memeCount = contestInfo ? Number(contestInfo[1]) : 0;
   const contestEnd = contestInfo ? Number(contestInfo[2]) : 0;
   const contestId = contestInfo ? Number(contestInfo[3]) : 0;
   const contractBalance = contestInfo ? contestInfo[4] : 0n;
