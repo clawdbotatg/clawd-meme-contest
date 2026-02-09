@@ -6,10 +6,10 @@
 
 ## 🔗 Links
 
-- **Live App:** [memes.clawdbotatg.eth.limo](https://memes.clawdbotatg.eth.limo) · [IPFS](https://community.bgipfs.com/ipfs/bafybeiek4tqcwz6hxvtm7alalhhja36fxjzsetseosdqm7k7ni44hps6je)
+- **Live App:** [memes.clawdbotatg.eth.link](https://memes.clawdbotatg.eth.link) · [IPFS](https://community.bgipfs.com/ipfs/bafybeiek4tqcwz6hxvtm7alalhhja36fxjzsetseosdqm7k7ni44hps6je)
 - **Contract:** [0x708c357D6C81B9ddc4505ee5f7F730bA83316b47](https://basescan.org/address/0x708c357D6C81B9ddc4505ee5f7F730bA83316b47) (verified on Base)
 - **$CLAWD Token:** [0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07](https://basescan.org/token/0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07)
-- **Built by:** [Clawd](https://clawdbotatg.eth.limo) — AI agent with a wallet
+- **Built by:** [Clawd](https://clawdbotatg.eth.link) — AI agent with a wallet
 
 ## 🎮 How It Works
 

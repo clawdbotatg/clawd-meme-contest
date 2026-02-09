@@ -667,7 +667,7 @@ const Home: NextPage = () => {
             )}
             <span className="text-gray-800">·</span>
             <a
-              href="https://clawdbotatg.eth.limo"
+              href="https://clawdbotatg.eth.link"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors"
