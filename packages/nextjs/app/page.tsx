@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
@@ -122,7 +121,6 @@ function MemeCard({
   isConnected,
   onBuy,
   isBuying,
-  onConnect,
 }: {
   meme: Meme;
   rank: number;
@@ -131,7 +129,6 @@ function MemeCard({
   isConnected: boolean;
   onBuy: (id: number) => void;
   isBuying: boolean;
-  onConnect: () => void;
 }) {
   const tweetId = extractTweetId(meme.tweetUrl);
   const pct = maxVotes > 0n ? Math.min(Number((meme.totalVotes * 100n) / maxVotes), 100) : 0;
@@ -202,23 +199,14 @@ function MemeCard({
           >
             VIEW ON 𝕏
           </a>
-          {isActive && (
-            isConnected ? (
-              <button
-                onClick={() => onBuy(Number(meme.id))}
-                disabled={isBuying}
-                className="btn-vote flex-1 px-3 py-1.5 text-[10px] font-black"
-              >
-                {isBuying ? "..." : "BUY 🔥"}
-              </button>
-            ) : (
-              <button
-                onClick={onConnect}
-                className="btn-vote flex-1 px-3 py-1.5 text-[10px] font-black"
-              >
-                CONNECT TO BUY
-              </button>
-            )
+          {isActive && isConnected && (
+            <button
+              onClick={() => onBuy(Number(meme.id))}
+              disabled={isBuying}
+              className="btn-vote flex-1 px-3 py-1.5 text-[10px] font-black"
+            >
+              {isBuying ? "..." : "BUY 🔥"}
+            </button>
           )}
         </div>
       </div>
@@ -337,8 +325,7 @@ const Home: NextPage = () => {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   };
 
-  /* ═══ RainbowKit connect ref ═══ */
-  const connectRef = useRef<(() => void) | null>(null);
+  /* ═══ (connect handled by SE2 Header) ═══ */
 
   /* ═══════════════════════════════════════
      HANDLERS
@@ -471,93 +458,59 @@ const Home: NextPage = () => {
      ═══════════════════════════════════════ */
   return (
     <div className="min-h-screen bg-black text-white scanlines">
-      {/* ═══ TOP NAV ═══ */}
-      <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/[0.04]">
-        <div className="max-w-[1400px] mx-auto px-3 py-2.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="font-black text-sm tracking-wider font-mono">
-              <span className="text-[#ff00ff]">CLAWD</span>
-              <span className="text-white/80"> MEME ARENA</span>
-            </span>
-
-            {/* Phase + countdown */}
-            {isActive && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#39ff14]/10 border border-[#39ff14]/20">
-                <div className="live-dot" style={{ background: "#39ff14" }} />
-                <span className="text-[10px] font-black tracking-wider text-[#39ff14]">
-                  {isEnded ? "TIME'S UP" : "LIVE"}
+      {/* ═══ STATUS BAR ═══ */}
+      <div className="max-w-[1400px] mx-auto px-3 py-2 flex items-center justify-between border-b border-white/[0.04]">
+        <div className="flex items-center gap-3">
+          {/* Phase + countdown */}
+          {isActive && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#39ff14]/10 border border-[#39ff14]/20">
+              <div className="live-dot" style={{ background: "#39ff14" }} />
+              <span className="text-[10px] font-black tracking-wider text-[#39ff14]">
+                {isEnded ? "TIME'S UP" : "LIVE"}
+              </span>
+              {!isEnded && contestEnd > 0 && (
+                <span className="text-[11px] font-mono font-bold text-[#39ff14] flicker">
+                  {countdown(contestEnd)}
                 </span>
-                {!isEnded && contestEnd > 0 && (
-                  <span className="text-[11px] font-mono font-bold text-[#39ff14] flicker">
-                    {countdown(contestEnd)}
-                  </span>
-                )}
-              </div>
-            )}
-            {isCompleted && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffd700]/10 border border-[#ffd700]/20">
-                <span className="text-[10px] font-black tracking-wider text-[#ffd700]">WINNERS CROWNED 🏆</span>
-              </div>
-            )}
+              )}
+            </div>
+          )}
+          {isCompleted && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffd700]/10 border border-[#ffd700]/20">
+              <span className="text-[10px] font-black tracking-wider text-[#ffd700]">WINNERS CROWNED 🏆</span>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+            <span className="text-[9px] text-gray-600 font-mono">POOL</span>
+            <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(contractBalance)}</span>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Stats */}
-            <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <span className="text-[9px] text-gray-600 font-mono">POOL</span>
-              <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(contractBalance)}</span>
-            </div>
-            <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <span className="text-[9px] text-gray-600 font-mono">BURN</span>
-              <span className="text-[11px] font-black font-mono text-[#ff3366]">{fmtC(totalBurned)}</span>
-            </div>
-
-            {/* Submit */}
-            {isActive && !isEnded && isConnected && (
-              <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
-                SUBMIT MEME
-              </button>
-            )}
-
-            {/* Admin */}
-            {isAdmin && (isEnded || isCompleted) && (
-              <button
-                onClick={() => setShowAdmin(!showAdmin)}
-                className="text-[#ffd700] hover:text-[#ffdd33] transition-colors text-[10px] font-mono font-bold border border-[#ffd700]/30 px-2 py-1 rounded"
-              >
-                JUDGE
-              </button>
-            )}
-
-            {/* Connect */}
-            <ConnectButton.Custom>
-              {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
-                // Store connect function for child components
-                if (openConnectModal) connectRef.current = openConnectModal;
-                const connected = mounted && account && chain;
-                return (
-                  <div {...(!mounted && { style: { opacity: 0, pointerEvents: "none" as const, userSelect: "none" as const } })}>
-                    {!connected ? (
-                      <button onClick={openConnectModal} className="bg-[#ff00ff] hover:bg-[#ff33ff] text-white font-black font-mono text-[11px] rounded-lg px-4 py-1.5 transition-all uppercase tracking-wider">
-                        Connect Wallet
-                      </button>
-                    ) : chain?.unsupported ? (
-                      <button onClick={openChainModal} className="bg-red-600/20 border border-red-500/30 rounded-lg px-3 py-1.5 text-[11px] font-bold text-red-400">
-                        Wrong Chain
-                      </button>
-                    ) : (
-                      <button onClick={openAccountModal} className="flex items-center gap-1.5 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] rounded-lg px-2.5 py-1.5 transition-all">
-                        <span className="text-[10px] font-mono text-[#39ff14]">{fmtC(clawdBalance)}</span>
-                        <span className="text-[11px] font-mono text-gray-400">{account.displayName}</span>
-                      </button>
-                    )}
-                  </div>
-                );
-              }}
-            </ConnectButton.Custom>
+          <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+            <span className="text-[9px] text-gray-600 font-mono">BURN</span>
+            <span className="text-[11px] font-black font-mono text-[#ff3366]">{fmtC(totalBurned)}</span>
           </div>
         </div>
-      </nav>
+
+        <div className="flex items-center gap-2">
+          {/* Submit */}
+          {isActive && !isEnded && isConnected && (
+            <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
+              SUBMIT MEME
+            </button>
+          )}
+
+          {/* Admin */}
+          {isAdmin && (isEnded || isCompleted) && (
+            <button
+              onClick={() => setShowAdmin(!showAdmin)}
+              className="text-[#ffd700] hover:text-[#ffdd33] transition-colors text-[10px] font-mono font-bold border border-[#ffd700]/30 px-2 py-1 rounded"
+            >
+              JUDGE
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ═══ SORT TABS + COUNT ═══ */}
       {sortedMemes.length > 0 && (
@@ -590,17 +543,9 @@ const Home: NextPage = () => {
           <p className="text-gray-600 font-mono text-xs mb-8">
             Clawd picks the top 3. Winners split the pot + bonus $CLAWD.
           </p>
-          <ConnectButton.Custom>
-            {({ openConnectModal, mounted }) => (
-              <button
-                onClick={openConnectModal}
-                disabled={!mounted}
-                className="btn-hot px-10 py-4 text-lg"
-              >
-                CONNECT WALLET
-              </button>
-            )}
-          </ConnectButton.Custom>
+          <p className="text-white font-mono text-lg mb-4">
+            👆 Connect your wallet above to enter the arena
+          </p>
           <p className="text-gray-700 font-mono text-[10px] mt-4">
             on Base · powered by $CLAWD · judged by an AI lobster
           </p>
@@ -619,7 +564,6 @@ const Home: NextPage = () => {
                 isConnected={isConnected}
                 onBuy={handleBuy}
                 isBuying={buyingMemeId === Number(meme.id)}
-                onConnect={() => connectRef.current?.()}
               />
             ))}
           </div>
@@ -723,13 +667,9 @@ const Home: NextPage = () => {
               </div>
 
               {!isConnected ? (
-                <ConnectButton.Custom>
-                  {({ openConnectModal, mounted }) => (
-                    <button onClick={openConnectModal} disabled={!mounted} className="btn-hot w-full py-3 text-sm">
-                      CONNECT WALLET TO SUBMIT
-                    </button>
-                  )}
-                </ConnectButton.Custom>
+                <div className="text-center py-3 text-gray-400 font-mono text-sm">
+                  👆 Connect your wallet in the header to submit
+                </div>
               ) : (
                 <button
                   onClick={handleSubmitMeme}
