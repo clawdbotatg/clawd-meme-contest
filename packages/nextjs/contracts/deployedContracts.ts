@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     ClawdMemeContest: {
-      address: "0x716836ebf9f6e3b18110ccef89e06dd07b8371c6",
+      address: "0x708c357d6c81b9ddc4505ee5f7f730ba83316b47",
       abi: [
         {
           type: "constructor",
@@ -36,6 +36,11 @@ const deployedContracts = {
               name: "_owner",
               type: "address",
               internalType: "address",
+            },
+            {
+              name: "_durationHours",
+              type: "uint256",
+              internalType: "uint256",
             },
           ],
           stateMutability: "nonpayable",
@@ -917,12 +922,12 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 41758202,
+      deployedOnBlock: 41941945,
     },
   },
   31337: {
     MockCLAWD: {
-      address: "0x196dbcbb54b8ec4958c959d8949ebfe87ac2aaaf",
+      address: "0x700b6a60ce7eaaea56f065753d8dcb9653dbad35",
       abi: [
         {
           type: "constructor",
@@ -1257,10 +1262,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 14,
+      deployedOnBlock: 1,
     },
     ClawdMemeContest: {
-      address: "0x82c6d3ed4cd33d8ec1e51d0b5cc1d822eaa0c3dc",
+      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
       abi: [
         {
           type: "constructor",
@@ -1289,6 +1294,11 @@ const deployedContracts = {
               name: "_owner",
               type: "address",
               internalType: "address",
+            },
+            {
+              name: "_durationHours",
+              type: "uint256",
+              internalType: "uint256",
             },
           ],
           stateMutability: "nonpayable",
@@ -2170,7 +2180,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 15,
+      deployedOnBlock: 2,
     },
   },
 } as const;

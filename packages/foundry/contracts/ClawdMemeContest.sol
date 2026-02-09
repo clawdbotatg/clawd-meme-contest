@@ -61,15 +61,25 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         uint256 _submissionFee,
         uint256 _voteFee,
         uint256 _burnBps,
-        address _owner
+        address _owner,
+        uint256 _durationHours
     ) Ownable(_owner) {
         require(_clawd != address(0), "Invalid token");
         require(_burnBps <= 5000, "Burn too high"); // max 50%
+        require(_durationHours > 0, "Invalid duration");
         clawd = IERC20(_clawd);
         submissionFee = _submissionFee;
         voteFee = _voteFee;
         burnBps = _burnBps;
-        currentPhase = Phase.Inactive;
+
+        // Auto-start contest — open for submissions + voting immediately
+        contestId = 1;
+        submissionEnd = block.timestamp + (_durationHours * 1 hours);
+        votingEnd = submissionEnd;
+        currentPhase = Phase.Submission;
+
+        emit ContestStarted(1, submissionEnd, votingEnd);
+        emit PhaseChanged(Phase.Submission);
     }
 
     // ============ Admin Functions ============

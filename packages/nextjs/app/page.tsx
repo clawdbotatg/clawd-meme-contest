@@ -152,9 +152,15 @@ function MemeCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="text-[13px] font-bold text-white truncate leading-tight">{meme.title}</h3>
-            <span className="text-[10px] text-gray-600 font-mono">
+            <a
+              href={`https://basescan.org/address/${meme.creator}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-600 font-mono hover:text-gray-400 transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
               {meme.creator.slice(0, 6)}...{meme.creator.slice(-4)}
-            </span>
+            </a>
           </div>
           <div className="text-right shrink-0">
             <div className="text-[13px] font-black font-mono text-[#39ff14]">{fmtC(meme.totalVotes)}</div>
@@ -785,13 +791,28 @@ const Home: NextPage = () => {
                 </div>
               </div>
 
-              <button
-                onClick={handleSubmitMeme}
-                disabled={!imageUri || !title || isApproving || isSubmitting}
-                className="btn-hot w-full py-3 text-sm"
-              >
-                {isApproving ? "APPROVING..." : isSubmitting ? "SUBMITTING..." : "SUBMIT"}
-              </button>
+              {!connectedAddress ? (
+                <ConnectButton.Custom>
+                  {({ openConnectModal, mounted }) => (
+                    <button
+                      onClick={openConnectModal}
+                      disabled={!mounted}
+                      className="btn-hot w-full py-3 text-sm bg-white/10 hover:bg-white/20"
+                      style={{ boxShadow: "0 3px 0 #333" }}
+                    >
+                      CONNECT WALLET
+                    </button>
+                  )}
+                </ConnectButton.Custom>
+              ) : (
+                <button
+                  onClick={handleSubmitMeme}
+                  disabled={!imageUri || !title || isApproving || isSubmitting}
+                  className="btn-hot w-full py-3 text-sm"
+                >
+                  {isApproving ? "APPROVING..." : isSubmitting ? "SUBMITTING..." : "SUBMIT"}
+                </button>
+              )}
 
               <p className="text-center text-[9px] text-gray-700 font-mono">
                 no refunds.
@@ -830,9 +851,14 @@ const Home: NextPage = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="text-lg font-black text-white truncate">{previewMeme.title}</h3>
-                  <span className="text-[10px] text-gray-600 font-mono mt-0.5 block">
+                  <a
+                    href={`https://basescan.org/address/${previewMeme.creator}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-gray-600 font-mono mt-0.5 block hover:text-gray-400 transition-colors"
+                  >
                     {previewMeme.creator.slice(0, 6)}...{previewMeme.creator.slice(-4)}
-                  </span>
+                  </a>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right">
