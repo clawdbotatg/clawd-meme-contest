@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     ClawdMemeContest: {
-      address: "0x708c357d6c81b9ddc4505ee5f7f730ba83316b47",
+      address: "0x6b86c5a17714313322ec4f9d7d88bcacee0c3e11",
       abi: [
         {
           type: "constructor",
@@ -23,7 +23,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_voteFee",
+              name: "_voteCost",
               type: "uint256",
               internalType: "uint256",
             },
@@ -60,20 +60,6 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "advanceToJudging",
-          inputs: [],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "advanceToVoting",
-          inputs: [],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
           name: "burnBps",
           inputs: [],
           outputs: [
@@ -100,7 +86,7 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "collectedFees",
+          name: "contestEnd",
           inputs: [],
           outputs: [
             {
@@ -175,16 +161,8 @@ const deployedContracts = {
               type: "uint256[]",
               internalType: "uint256[]",
             },
-          ],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "fundPrizePool",
-          inputs: [
             {
-              name: "amount",
+              name: "bonusAmount",
               type: "uint256",
               internalType: "uint256",
             },
@@ -213,12 +191,7 @@ const deployedContracts = {
                   internalType: "address",
                 },
                 {
-                  name: "imageUri",
-                  type: "string",
-                  internalType: "string",
-                },
-                {
-                  name: "title",
+                  name: "tweetUrl",
                   type: "string",
                   internalType: "string",
                 },
@@ -231,11 +204,6 @@ const deployedContracts = {
                   name: "submittedAt",
                   type: "uint256",
                   internalType: "uint256",
-                },
-                {
-                  name: "winner",
-                  type: "bool",
-                  internalType: "bool",
                 },
                 {
                   name: "prizeAmount",
@@ -263,22 +231,17 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_prizePool",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_submissionEnd",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_votingEnd",
+              name: "_contestEnd",
               type: "uint256",
               internalType: "uint256",
             },
             {
               name: "_contestId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_balance",
               type: "uint256",
               internalType: "uint256",
             },
@@ -312,12 +275,7 @@ const deployedContracts = {
                   internalType: "address",
                 },
                 {
-                  name: "imageUri",
-                  type: "string",
-                  internalType: "string",
-                },
-                {
-                  name: "title",
+                  name: "tweetUrl",
                   type: "string",
                   internalType: "string",
                 },
@@ -332,35 +290,11 @@ const deployedContracts = {
                   internalType: "uint256",
                 },
                 {
-                  name: "winner",
-                  type: "bool",
-                  internalType: "bool",
-                },
-                {
                   name: "prizeAmount",
                   type: "uint256",
                   internalType: "uint256",
                 },
               ],
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
-          name: "getMemesByCreator",
-          inputs: [
-            {
-              name: "creator",
-              type: "address",
-              internalType: "address",
-            },
-          ],
-          outputs: [
-            {
-              name: "",
-              type: "uint256[]",
-              internalType: "uint256[]",
             },
           ],
           stateMutability: "view",
@@ -424,12 +358,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "imageUri",
-              type: "string",
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               internalType: "string",
             },
@@ -442,11 +371,6 @@ const deployedContracts = {
               name: "submittedAt",
               type: "uint256",
               internalType: "uint256",
-            },
-            {
-              name: "winner",
-              type: "bool",
-              internalType: "bool",
             },
             {
               name: "prizeAmount",
@@ -471,19 +395,6 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "prizePool",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
           name: "renounceOwnership",
           inputs: [],
           outputs: [],
@@ -499,7 +410,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_voteFee",
+              name: "_voteCost",
               type: "uint256",
               internalType: "uint256",
             },
@@ -517,31 +428,13 @@ const deployedContracts = {
           name: "startContest",
           inputs: [
             {
-              name: "_submissionDays",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_votingDays",
+              name: "_durationHours",
               type: "uint256",
               internalType: "uint256",
             },
           ],
           outputs: [],
           stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "submissionEnd",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
         },
         {
           type: "function",
@@ -561,12 +454,7 @@ const deployedContracts = {
           name: "submitMeme",
           inputs: [
             {
-              name: "imageUri",
-              type: "string",
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               internalType: "string",
             },
@@ -609,18 +497,13 @@ const deployedContracts = {
               type: "uint256",
               internalType: "uint256",
             },
-            {
-              name: "amount",
-              type: "uint256",
-              internalType: "uint256",
-            },
           ],
           outputs: [],
           stateMutability: "nonpayable",
         },
         {
           type: "function",
-          name: "voteFee",
+          name: "voteCost",
           inputs: [],
           outputs: [
             {
@@ -657,20 +540,7 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "votingEnd",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
-          name: "withdrawPrizePool",
+          name: "withdraw",
           inputs: [
             {
               name: "amount",
@@ -692,13 +562,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "submissionEnd",
-              type: "uint256",
-              indexed: false,
-              internalType: "uint256",
-            },
-            {
-              name: "votingEnd",
+              name: "contestEnd",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -717,7 +581,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "voteFee",
+              name: "voteCost",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -748,13 +612,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "imageUri",
-              type: "string",
-              indexed: false,
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               indexed: false,
               internalType: "string",
@@ -796,25 +654,6 @@ const deployedContracts = {
         },
         {
           type: "event",
-          name: "PrizePoolFunded",
-          inputs: [
-            {
-              name: "funder",
-              type: "address",
-              indexed: true,
-              internalType: "address",
-            },
-            {
-              name: "amount",
-              type: "uint256",
-              indexed: false,
-              internalType: "uint256",
-            },
-          ],
-          anonymous: false,
-        },
-        {
-          type: "event",
           name: "PrizesDistributed",
           inputs: [
             {
@@ -849,7 +688,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "amount",
+              name: "cost",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -922,7 +761,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 41941945,
+      deployedOnBlock: 41944502,
     },
   },
   31337: {
@@ -1281,7 +1120,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_voteFee",
+              name: "_voteCost",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1318,20 +1157,6 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "advanceToJudging",
-          inputs: [],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "advanceToVoting",
-          inputs: [],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
           name: "burnBps",
           inputs: [],
           outputs: [
@@ -1358,7 +1183,7 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "collectedFees",
+          name: "contestEnd",
           inputs: [],
           outputs: [
             {
@@ -1433,16 +1258,8 @@ const deployedContracts = {
               type: "uint256[]",
               internalType: "uint256[]",
             },
-          ],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "fundPrizePool",
-          inputs: [
             {
-              name: "amount",
+              name: "bonusAmount",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1471,12 +1288,7 @@ const deployedContracts = {
                   internalType: "address",
                 },
                 {
-                  name: "imageUri",
-                  type: "string",
-                  internalType: "string",
-                },
-                {
-                  name: "title",
+                  name: "tweetUrl",
                   type: "string",
                   internalType: "string",
                 },
@@ -1489,11 +1301,6 @@ const deployedContracts = {
                   name: "submittedAt",
                   type: "uint256",
                   internalType: "uint256",
-                },
-                {
-                  name: "winner",
-                  type: "bool",
-                  internalType: "bool",
                 },
                 {
                   name: "prizeAmount",
@@ -1521,22 +1328,17 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_prizePool",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_submissionEnd",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_votingEnd",
+              name: "_contestEnd",
               type: "uint256",
               internalType: "uint256",
             },
             {
               name: "_contestId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_balance",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1570,12 +1372,7 @@ const deployedContracts = {
                   internalType: "address",
                 },
                 {
-                  name: "imageUri",
-                  type: "string",
-                  internalType: "string",
-                },
-                {
-                  name: "title",
+                  name: "tweetUrl",
                   type: "string",
                   internalType: "string",
                 },
@@ -1590,35 +1387,11 @@ const deployedContracts = {
                   internalType: "uint256",
                 },
                 {
-                  name: "winner",
-                  type: "bool",
-                  internalType: "bool",
-                },
-                {
                   name: "prizeAmount",
                   type: "uint256",
                   internalType: "uint256",
                 },
               ],
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
-          name: "getMemesByCreator",
-          inputs: [
-            {
-              name: "creator",
-              type: "address",
-              internalType: "address",
-            },
-          ],
-          outputs: [
-            {
-              name: "",
-              type: "uint256[]",
-              internalType: "uint256[]",
             },
           ],
           stateMutability: "view",
@@ -1682,12 +1455,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "imageUri",
-              type: "string",
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               internalType: "string",
             },
@@ -1700,11 +1468,6 @@ const deployedContracts = {
               name: "submittedAt",
               type: "uint256",
               internalType: "uint256",
-            },
-            {
-              name: "winner",
-              type: "bool",
-              internalType: "bool",
             },
             {
               name: "prizeAmount",
@@ -1729,19 +1492,6 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "prizePool",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
           name: "renounceOwnership",
           inputs: [],
           outputs: [],
@@ -1757,7 +1507,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "_voteFee",
+              name: "_voteCost",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1775,31 +1525,13 @@ const deployedContracts = {
           name: "startContest",
           inputs: [
             {
-              name: "_submissionDays",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "_votingDays",
+              name: "_durationHours",
               type: "uint256",
               internalType: "uint256",
             },
           ],
           outputs: [],
           stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "submissionEnd",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
         },
         {
           type: "function",
@@ -1819,12 +1551,7 @@ const deployedContracts = {
           name: "submitMeme",
           inputs: [
             {
-              name: "imageUri",
-              type: "string",
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               internalType: "string",
             },
@@ -1867,18 +1594,13 @@ const deployedContracts = {
               type: "uint256",
               internalType: "uint256",
             },
-            {
-              name: "amount",
-              type: "uint256",
-              internalType: "uint256",
-            },
           ],
           outputs: [],
           stateMutability: "nonpayable",
         },
         {
           type: "function",
-          name: "voteFee",
+          name: "voteCost",
           inputs: [],
           outputs: [
             {
@@ -1915,20 +1637,7 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "votingEnd",
-          inputs: [],
-          outputs: [
-            {
-              name: "",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
-          name: "withdrawPrizePool",
+          name: "withdraw",
           inputs: [
             {
               name: "amount",
@@ -1950,13 +1659,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "submissionEnd",
-              type: "uint256",
-              indexed: false,
-              internalType: "uint256",
-            },
-            {
-              name: "votingEnd",
+              name: "contestEnd",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -1975,7 +1678,7 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
-              name: "voteFee",
+              name: "voteCost",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -2006,13 +1709,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "imageUri",
-              type: "string",
-              indexed: false,
-              internalType: "string",
-            },
-            {
-              name: "title",
+              name: "tweetUrl",
               type: "string",
               indexed: false,
               internalType: "string",
@@ -2054,25 +1751,6 @@ const deployedContracts = {
         },
         {
           type: "event",
-          name: "PrizePoolFunded",
-          inputs: [
-            {
-              name: "funder",
-              type: "address",
-              indexed: true,
-              internalType: "address",
-            },
-            {
-              name: "amount",
-              type: "uint256",
-              indexed: false,
-              internalType: "uint256",
-            },
-          ],
-          anonymous: false,
-        },
-        {
-          type: "event",
           name: "PrizesDistributed",
           inputs: [
             {
@@ -2107,7 +1785,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "amount",
+              name: "cost",
               type: "uint256",
               indexed: false,
               internalType: "uint256",

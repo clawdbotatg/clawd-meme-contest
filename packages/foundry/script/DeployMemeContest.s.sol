@@ -12,11 +12,11 @@ contract DeployMemeContest is ScaffoldETHDeploy {
     address constant BASE_OWNER = 0x11ce532845cE0eAcdA41f72FDc1C88c335981442;
 
     function run() external ScaffoldEthDeployerRunner {
-        uint256 submissionFee = 615_000 * 1e18; // 615,000 CLAWD
-        uint256 voteFee = 308_000 * 1e18;       // 308,000 CLAWD
+        uint256 submissionFee = 615_000 * 1e18; // 615,000 CLAWD to submit
+        uint256 voteCost = 308_000 * 1e18;       // 308,000 CLAWD per vote (one-click)
         uint256 burnBps = 1000;                   // 10%
 
-        uint256 durationHours = 168; // Contest runs for 7 days from deploy
+        uint256 durationHours = 2; // 2-hour contest
 
         if (block.chainid == 31337) {
             // Local: deploy mock token
@@ -25,7 +25,7 @@ contract DeployMemeContest is ScaffoldETHDeploy {
             ClawdMemeContest contest = new ClawdMemeContest(
                 address(mockClawd),
                 submissionFee,
-                voteFee,
+                voteCost,
                 burnBps,
                 deployer,
                 durationHours
@@ -46,7 +46,7 @@ contract DeployMemeContest is ScaffoldETHDeploy {
             ClawdMemeContest contest = new ClawdMemeContest(
                 BASE_CLAWD,
                 submissionFee,
-                voteFee,
+                voteCost,
                 burnBps,
                 BASE_OWNER,
                 durationHours

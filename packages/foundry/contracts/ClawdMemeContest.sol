@@ -12,27 +12,24 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
     IERC20 public immutable clawd;
     address public constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
-    // ============ Contest Config ============
-    uint256 public submissionFee;
-    uint256 public voteFee;
-    uint256 public burnBps; // basis points, 1000 = 10%
+    // ============ Config ============
+    uint256 public submissionFee;   // Cost to submit a tweet
+    uint256 public voteCost;        // Fixed cost per vote (one-click buy)
+    uint256 public burnBps;         // Basis points burned (1000 = 10%)
 
-    // ============ Contest Lifecycle ============
-    enum Phase { Inactive, Submission, Voting, Judging, Completed }
+    // ============ Lifecycle ============
+    enum Phase { Inactive, Active, Completed }
     Phase public currentPhase;
-    uint256 public submissionEnd;
-    uint256 public votingEnd;
+    uint256 public contestEnd;
     uint256 public contestId;
 
     // ============ Submissions ============
     struct Meme {
         uint256 id;
         address creator;
-        string imageUri;
-        string title;
+        string tweetUrl;
         uint256 totalVotes;
         uint256 submittedAt;
-        bool winner;
         uint256 prizeAmount;
     }
 
@@ -41,132 +38,54 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public creatorMemes;
     mapping(uint256 => mapping(address => uint256)) public votes;
 
-    // ============ Prize Pool ============
-    uint256 public prizePool;
-    uint256 public collectedFees;
+    // ============ Stats ============
     uint256 public totalBurned;
 
     // ============ Events ============
-    event ContestStarted(uint256 indexed contestId, uint256 submissionEnd, uint256 votingEnd);
-    event MemeSubmitted(uint256 indexed memeId, address indexed creator, string imageUri, string title);
-    event VoteCast(uint256 indexed memeId, address indexed voter, uint256 amount);
+    event ContestStarted(uint256 indexed contestId, uint256 contestEnd);
+    event MemeSubmitted(uint256 indexed memeId, address indexed creator, string tweetUrl);
+    event VoteCast(uint256 indexed memeId, address indexed voter, uint256 cost);
     event PrizesDistributed(uint256 indexed contestId, uint256 totalDistributed);
     event WinnerSelected(uint256 indexed memeId, address indexed creator, uint256 prizeAmount);
     event PhaseChanged(Phase newPhase);
-    event FeesUpdated(uint256 submissionFee, uint256 voteFee, uint256 burnBps);
-    event PrizePoolFunded(address indexed funder, uint256 amount);
+    event FeesUpdated(uint256 submissionFee, uint256 voteCost, uint256 burnBps);
 
     constructor(
         address _clawd,
         uint256 _submissionFee,
-        uint256 _voteFee,
+        uint256 _voteCost,
         uint256 _burnBps,
         address _owner,
         uint256 _durationHours
     ) Ownable(_owner) {
         require(_clawd != address(0), "Invalid token");
-        require(_burnBps <= 5000, "Burn too high"); // max 50%
+        require(_burnBps <= 5000, "Burn too high");
         require(_durationHours > 0, "Invalid duration");
         clawd = IERC20(_clawd);
         submissionFee = _submissionFee;
-        voteFee = _voteFee;
+        voteCost = _voteCost;
         burnBps = _burnBps;
 
-        // Auto-start contest — open for submissions + voting immediately
         contestId = 1;
-        submissionEnd = block.timestamp + (_durationHours * 1 hours);
-        votingEnd = submissionEnd;
-        currentPhase = Phase.Submission;
+        contestEnd = block.timestamp + (_durationHours * 1 hours);
+        currentPhase = Phase.Active;
 
-        emit ContestStarted(1, submissionEnd, votingEnd);
-        emit PhaseChanged(Phase.Submission);
+        emit ContestStarted(1, contestEnd);
+        emit PhaseChanged(Phase.Active);
     }
 
-    // ============ Admin Functions ============
+    // ============ Modifiers ============
 
-    function startContest(uint256 _submissionDays, uint256 _votingDays) external onlyOwner {
-        require(currentPhase == Phase.Inactive || currentPhase == Phase.Completed, "Contest in progress");
-        require(_submissionDays > 0 && _votingDays > 0, "Invalid durations");
-
-        contestId++;
-        submissionEnd = block.timestamp + (_submissionDays * 1 days);
-        votingEnd = submissionEnd + (_votingDays * 1 days);
-        currentPhase = Phase.Submission;
-
-        emit ContestStarted(contestId, submissionEnd, votingEnd);
-        emit PhaseChanged(Phase.Submission);
-    }
-
-    function fundPrizePool(uint256 amount) external {
-        require(amount > 0, "Zero amount");
-        clawd.safeTransferFrom(msg.sender, address(this), amount);
-        prizePool += amount;
-        emit PrizePoolFunded(msg.sender, amount);
-    }
-
-    function advanceToVoting() external onlyOwner {
-        require(currentPhase == Phase.Submission, "Not in submission phase");
-        currentPhase = Phase.Voting;
-        submissionEnd = block.timestamp; // close submissions now
-        emit PhaseChanged(Phase.Voting);
-    }
-
-    function advanceToJudging() external onlyOwner {
-        require(currentPhase == Phase.Voting, "Not in voting phase");
-        currentPhase = Phase.Judging;
-        votingEnd = block.timestamp; // close voting now
-        emit PhaseChanged(Phase.Judging);
-    }
-
-    function distributePrizes(uint256[] calldata memeIds, uint256[] calldata amounts) external onlyOwner nonReentrant {
-        require(currentPhase == Phase.Judging, "Not in judging phase");
-        require(memeIds.length == amounts.length, "Length mismatch");
-        require(memeIds.length > 0, "No winners");
-
-        uint256 totalPayout;
-        for (uint256 i = 0; i < memeIds.length; i++) {
-            Meme storage meme = memes[memeIds[i]];
-            require(meme.id != 0, "Meme does not exist");
-            require(!meme.winner, "Already awarded");
-            require(amounts[i] > 0, "Zero prize");
-
-            meme.winner = true;
-            meme.prizeAmount = amounts[i];
-            totalPayout += amounts[i];
-
-            clawd.safeTransfer(meme.creator, amounts[i]);
-            emit WinnerSelected(memeIds[i], meme.creator, amounts[i]);
-        }
-
-        require(totalPayout <= prizePool, "Exceeds prize pool");
-        prizePool -= totalPayout;
-        currentPhase = Phase.Completed;
-
-        emit PrizesDistributed(contestId, totalPayout);
-        emit PhaseChanged(Phase.Completed);
-    }
-
-    function setFees(uint256 _submissionFee, uint256 _voteFee, uint256 _burnBps) external onlyOwner {
-        require(_burnBps <= 5000, "Burn too high");
-        submissionFee = _submissionFee;
-        voteFee = _voteFee;
-        burnBps = _burnBps;
-        emit FeesUpdated(_submissionFee, _voteFee, _burnBps);
-    }
-
-    function withdrawPrizePool(uint256 amount) external onlyOwner {
-        require(amount <= prizePool, "Exceeds prize pool");
-        prizePool -= amount;
-        clawd.safeTransfer(owner(), amount);
+    modifier whenActive() {
+        require(currentPhase == Phase.Active, "Contest not active");
+        require(block.timestamp <= contestEnd, "Contest ended");
+        _;
     }
 
     // ============ User Functions ============
 
-    function submitMeme(string calldata imageUri, string calldata title) external nonReentrant {
-        require(currentPhase == Phase.Submission, "Not in submission phase");
-        require(block.timestamp <= submissionEnd, "Submission period ended");
-        require(bytes(imageUri).length > 0, "Empty image URI");
-        require(bytes(title).length > 0 && bytes(title).length <= 100, "Invalid title");
+    function submitMeme(string calldata tweetUrl) external nonReentrant whenActive {
+        require(_isValidTweetUrl(tweetUrl), "Only X posts allowed");
 
         // Transfer fee
         clawd.safeTransferFrom(msg.sender, address(this), submissionFee);
@@ -177,52 +96,104 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
             clawd.safeTransfer(DEAD, burnAmount);
             totalBurned += burnAmount;
         }
-        collectedFees += (submissionFee - burnAmount);
 
         // Create meme
         memeCount++;
         memes[memeCount] = Meme({
             id: memeCount,
             creator: msg.sender,
-            imageUri: imageUri,
-            title: title,
+            tweetUrl: tweetUrl,
             totalVotes: 0,
             submittedAt: block.timestamp,
-            winner: false,
             prizeAmount: 0
         });
         creatorMemes[msg.sender].push(memeCount);
 
-        emit MemeSubmitted(memeCount, msg.sender, imageUri, title);
+        emit MemeSubmitted(memeCount, msg.sender, tweetUrl);
     }
 
-    function vote(uint256 memeId, uint256 amount) external nonReentrant {
-        require(
-            currentPhase == Phase.Submission || currentPhase == Phase.Voting,
-            "Voting not active"
-        );
-        if (currentPhase == Phase.Voting) {
-            require(block.timestamp <= votingEnd, "Voting period ended");
-        }
+    function vote(uint256 memeId) external nonReentrant whenActive {
         require(memeId > 0 && memeId <= memeCount, "Invalid meme");
-        require(amount >= voteFee, "Below minimum vote");
 
-        // Transfer vote amount
-        clawd.safeTransferFrom(msg.sender, address(this), amount);
+        // Transfer fixed vote cost
+        clawd.safeTransferFrom(msg.sender, address(this), voteCost);
 
         // Burn portion
-        uint256 burnAmount = (amount * burnBps) / 10000;
+        uint256 burnAmount = (voteCost * burnBps) / 10000;
         if (burnAmount > 0) {
             clawd.safeTransfer(DEAD, burnAmount);
             totalBurned += burnAmount;
         }
 
-        uint256 voteValue = amount - burnAmount;
+        uint256 voteValue = voteCost - burnAmount;
         votes[memeId][msg.sender] += voteValue;
         memes[memeId].totalVotes += voteValue;
-        collectedFees += voteValue;
 
-        emit VoteCast(memeId, msg.sender, amount);
+        emit VoteCast(memeId, msg.sender, voteCost);
+    }
+
+    // ============ Admin Functions ============
+
+    /// @notice Distribute prizes to top memes. Owner calls with bonus amount to add.
+    /// Sends all collected fees + bonus to winners, split by provided amounts.
+    function distributePrizes(
+        uint256[] calldata memeIds,
+        uint256[] calldata amounts,
+        uint256 bonusAmount
+    ) external onlyOwner nonReentrant {
+        require(block.timestamp > contestEnd || currentPhase == Phase.Active, "Contest still active");
+        require(memeIds.length == amounts.length, "Length mismatch");
+        require(memeIds.length > 0 && memeIds.length <= 5, "1-5 winners");
+
+        // Pull bonus from owner
+        if (bonusAmount > 0) {
+            clawd.safeTransferFrom(msg.sender, address(this), bonusAmount);
+        }
+
+        uint256 totalPayout;
+        for (uint256 i = 0; i < memeIds.length; i++) {
+            Meme storage meme = memes[memeIds[i]];
+            require(meme.id != 0, "Meme does not exist");
+            require(amounts[i] > 0, "Zero prize");
+
+            meme.prizeAmount += amounts[i];
+            totalPayout += amounts[i];
+
+            clawd.safeTransfer(meme.creator, amounts[i]);
+            emit WinnerSelected(memeIds[i], meme.creator, amounts[i]);
+        }
+
+        uint256 balance = clawd.balanceOf(address(this));
+        require(totalPayout <= balance + totalPayout, "Exceeds balance"); // sanity
+
+        currentPhase = Phase.Completed;
+        emit PrizesDistributed(contestId, totalPayout);
+        emit PhaseChanged(Phase.Completed);
+    }
+
+    function startContest(uint256 _durationHours) external onlyOwner {
+        require(currentPhase == Phase.Inactive || currentPhase == Phase.Completed, "Contest in progress");
+        require(_durationHours > 0, "Invalid duration");
+
+        contestId++;
+        contestEnd = block.timestamp + (_durationHours * 1 hours);
+        currentPhase = Phase.Active;
+
+        emit ContestStarted(contestId, contestEnd);
+        emit PhaseChanged(Phase.Active);
+    }
+
+    function setFees(uint256 _submissionFee, uint256 _voteCost, uint256 _burnBps) external onlyOwner {
+        require(_burnBps <= 5000, "Burn too high");
+        submissionFee = _submissionFee;
+        voteCost = _voteCost;
+        burnBps = _burnBps;
+        emit FeesUpdated(_submissionFee, _voteCost, _burnBps);
+    }
+
+    /// @notice Withdraw any remaining CLAWD (leftover fees after contest)
+    function withdraw(uint256 amount) external onlyOwner {
+        clawd.safeTransfer(owner(), amount);
     }
 
     // ============ View Functions ============
@@ -240,26 +211,47 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         return allMemes;
     }
 
-    function getMemesByCreator(address creator) external view returns (uint256[] memory) {
-        return creatorMemes[creator];
-    }
-
     function getContestInfo()
         external
         view
         returns (
             Phase phase,
             uint256 _memeCount,
-            uint256 _prizePool,
-            uint256 _submissionEnd,
-            uint256 _votingEnd,
-            uint256 _contestId
+            uint256 _contestEnd,
+            uint256 _contestId,
+            uint256 _balance
         )
     {
-        return (currentPhase, memeCount, prizePool, submissionEnd, votingEnd, contestId);
+        return (currentPhase, memeCount, contestEnd, contestId, clawd.balanceOf(address(this)));
     }
 
     function getVote(uint256 memeId, address voter) external view returns (uint256) {
         return votes[memeId][voter];
+    }
+
+    // ============ Internal ============
+
+    function _isValidTweetUrl(string calldata url) internal pure returns (bool) {
+        bytes memory b = bytes(url);
+        if (b.length < 20) return false;
+
+        // Check https://x.com/
+        if (b.length >= 14 &&
+            b[0] == "h" && b[1] == "t" && b[2] == "t" && b[3] == "p" && b[4] == "s" &&
+            b[5] == ":" && b[6] == "/" && b[7] == "/" && b[8] == "x" && b[9] == "." &&
+            b[10] == "c" && b[11] == "o" && b[12] == "m" && b[13] == "/") {
+            return true;
+        }
+
+        // Check https://twitter.com/
+        if (b.length >= 20 &&
+            b[0] == "h" && b[1] == "t" && b[2] == "t" && b[3] == "p" && b[4] == "s" &&
+            b[5] == ":" && b[6] == "/" && b[7] == "/" && b[8] == "t" && b[9] == "w" &&
+            b[10] == "i" && b[11] == "t" && b[12] == "t" && b[13] == "e" && b[14] == "r" &&
+            b[15] == "." && b[16] == "c" && b[17] == "o" && b[18] == "m" && b[19] == "/") {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
@@ -9,37 +9,9 @@ import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContr
 import { notification } from "~~/utils/scaffold-eth";
 
 /* ═══════════════════════════════════════════
-   CONSTANTS & TYPES
+   HELPERS
    ═══════════════════════════════════════════ */
-const PHASE_LABELS = ["CLOSED", "ACCEPTING MEMES", "VOTING IS LIVE", "THE LOBSTER JUDGES", "WINNERS CROWNED"] as const;
-const PHASE_COLORS = ["#555", "#39ff14", "#ff00ff", "#ffd700", "#ffd700"];
 
-// Ticker flavor lines — concise, no emoji spam
-const FLAVOR_LINES = [
-  "judged by an AI lobster with a crypto wallet",
-  "submit memes. receive CLAWD. simple as.",
-  "vote with your bags, not your feelings",
-  "bad memes get zero votes. skill issue.",
-  "this entire app was built by an AI. cope.",
-  "your meme → the arena → glory or dust",
-];
-
-type Meme = {
-  id: bigint;
-  creator: string;
-  imageUri: string;
-  title: string;
-  totalVotes: bigint;
-  submittedAt: bigint;
-  winner: boolean;
-  prizeAmount: bigint;
-};
-
-type SortMode = "top" | "new" | "winners";
-
-/* ═══════════════════════════════════════════
-   FORMATTERS
-   ═══════════════════════════════════════════ */
 const fmtC = (val: bigint | undefined) => {
   if (!val) return "0";
   const num = Number(formatEther(val));
@@ -53,147 +25,202 @@ const fmtCFull = (val: bigint | undefined) => {
   return Number(formatEther(val)).toLocaleString();
 };
 
+/** Extract tweet ID from an x.com or twitter.com URL */
+function extractTweetId(url: string): string | null {
+  const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+/** Validate tweet URL format */
+function isValidTweetUrl(url: string): boolean {
+  return /^https:\/\/(x\.com|twitter\.com)\/\w+\/status\/\d+/.test(url);
+}
+
+type Meme = {
+  id: bigint;
+  creator: string;
+  tweetUrl: string;
+  totalVotes: bigint;
+  submittedAt: bigint;
+  prizeAmount: bigint;
+};
+
+type SortMode = "top" | "new";
+
 /* ═══════════════════════════════════════════
-   TICKER MARQUEE
+   TWEET EMBED COMPONENT
    ═══════════════════════════════════════════ */
-function Ticker({ items }: { items: string[] }) {
-  const doubled = [...items, ...items];
+function TweetEmbed({ tweetId, className }: { tweetId: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const w = window as any;
+    const render = () => {
+      if (w.twttr?.widgets) {
+        // Clear previous
+        if (ref.current) ref.current.innerHTML = "";
+        w.twttr.widgets
+          .createTweet(tweetId, ref.current, {
+            theme: "dark",
+            conversation: "none",
+            cards: "visible",
+            width: 400,
+            dnt: true,
+          })
+          .then(() => setLoaded(true))
+          .catch(() => setLoaded(true));
+      }
+    };
+
+    if (w.twttr?.widgets) {
+      render();
+    } else {
+      // Load Twitter widget script
+      if (!document.getElementById("twitter-wjs")) {
+        const script = document.createElement("script");
+        script.id = "twitter-wjs";
+        script.src = "https://platform.twitter.com/widgets.js";
+        script.async = true;
+        script.onload = () => {
+          setTimeout(render, 100);
+        };
+        document.head.appendChild(script);
+      } else {
+        // Script loading, wait for it
+        const iv = setInterval(() => {
+          if (w.twttr?.widgets) {
+            clearInterval(iv);
+            render();
+          }
+        }, 200);
+        return () => clearInterval(iv);
+      }
+    }
+  }, [tweetId]);
+
   return (
-    <div className="overflow-hidden bg-[#060606] border-b border-white/[0.03] py-1.5">
-      <div className="ticker-track">
-        {doubled.map((item, i) => (
-          <span key={i} className="text-[11px] font-mono text-gray-500 whitespace-nowrap px-6">
-            {item}
-          </span>
-        ))}
-      </div>
+    <div ref={ref} className={className}>
+      {!loaded && (
+        <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono">
+          Loading tweet...
+        </div>
+      )}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   MEME CARD — image-first, dense, personality
+   MEME CARD
    ═══════════════════════════════════════════ */
 function MemeCard({
   meme,
   rank,
   maxVotes,
-  phase,
-  onPreview,
-  onVote,
-  voteAmount,
-  setVoteAmount,
-  votingMemeId,
-  isVoteApproving,
+  isActive,
+  isConnected,
+  onBuy,
+  isBuying,
+  onConnect,
 }: {
   meme: Meme;
   rank: number;
   maxVotes: bigint;
-  phase: number;
-  onPreview: (m: Meme) => void;
-  onVote: (id: number) => void;
-  voteAmount: string;
-  setVoteAmount: (id: number, v: string) => void;
-  votingMemeId: number | null;
-  isVoteApproving: boolean;
+  isActive: boolean;
+  isConnected: boolean;
+  onBuy: (id: number) => void;
+  isBuying: boolean;
+  onConnect: () => void;
 }) {
+  const tweetId = extractTweetId(meme.tweetUrl);
   const pct = maxVotes > 0n ? Math.min(Number((meme.totalVotes * 100n) / maxVotes), 100) : 0;
-  const isVoting = votingMemeId === Number(meme.id);
+  const hasPrize = meme.prizeAmount > 0n;
 
   return (
-    <div
-      className={`meme-card ${meme.winner ? "winner-card winner-glow" : ""}`}
-      onClick={() => onPreview(meme)}
-    >
-      {/* Image — fills card, no padding */}
-      <div className="relative aspect-[4/3] bg-[#080808] overflow-hidden">
-        {meme.imageUri ? (
-          <img
-            src={meme.imageUri}
-            alt={meme.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={e => {
-              (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect fill='%23080808' width='400' height='300'/><text x='200' y='155' text-anchor='middle' fill='%23222' font-size='12' font-family='monospace'>NO IMAGE</text></svg>`;
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-800 font-mono text-xs">NO IMAGE</div>
-        )}
-
-        {/* Rank badge */}
-        {rank < 3 && (
-          <div
-            className="absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-mono"
-            style={{
-              backgroundColor: rank === 0 ? "#ffd700" : rank === 1 ? "#aaa" : "#8b6914",
-              color: "#000",
-            }}
-          >
-            {rank + 1}
-          </div>
-        )}
-
-        {/* Winner badge */}
-        {meme.winner && (
-          <div className="absolute top-2 right-2 bg-[#ffd700] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-            WINNER
-          </div>
-        )}
-
-        {/* Vote bar at bottom of image */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
-          <div className="h-full vote-bar" style={{ width: `${Math.max(pct, 1)}%` }} />
+    <div className={`meme-card ${hasPrize ? "winner-card winner-glow" : ""}`}>
+      {/* Rank badge */}
+      {rank < 3 && (
+        <div
+          className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black font-mono"
+          style={{
+            backgroundColor: rank === 0 ? "#ffd700" : rank === 1 ? "#aaa" : "#8b6914",
+            color: "#000",
+          }}
+        >
+          {rank + 1}
         </div>
+      )}
+
+      {/* Prize badge */}
+      {hasPrize && (
+        <div className="absolute top-2 right-2 z-10 bg-[#ffd700] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+          🏆 {fmtC(meme.prizeAmount)}
+        </div>
+      )}
+
+      {/* Tweet embed */}
+      <div className="min-h-[150px]">
+        {tweetId ? (
+          <TweetEmbed tweetId={tweetId} />
+        ) : (
+          <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono px-3 text-center break-all">
+            {meme.tweetUrl}
+          </div>
+        )}
       </div>
 
-      {/* Info strip — compact */}
+      {/* Vote bar */}
+      <div className="h-1 bg-white/5">
+        <div className="h-full vote-bar" style={{ width: `${Math.max(pct, 1)}%` }} />
+      </div>
+
+      {/* Info + action strip */}
       <div className="px-3 py-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[13px] font-bold text-white truncate leading-tight">{meme.title}</h3>
-            <a
-              href={`https://basescan.org/address/${meme.creator}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-gray-600 font-mono hover:text-gray-400 transition-colors"
-              onClick={e => e.stopPropagation()}
-            >
-              {meme.creator.slice(0, 6)}...{meme.creator.slice(-4)}
-            </a>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-[13px] font-black font-mono text-[#39ff14]">{fmtC(meme.totalVotes)}</div>
-            <div className="text-[9px] text-gray-600 font-mono">CLAWD</div>
+        <div className="flex items-center justify-between gap-2">
+          <a
+            href={`https://basescan.org/address/${meme.creator}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-gray-600 font-mono hover:text-gray-400 transition-colors"
+          >
+            {meme.creator.slice(0, 6)}...{meme.creator.slice(-4)}
+          </a>
+          <div className="text-right">
+            <span className="text-[13px] font-black font-mono text-[#39ff14]">{fmtC(meme.totalVotes)}</span>
+            <span className="text-[9px] text-gray-600 font-mono ml-1">CLAWD</span>
           </div>
         </div>
 
-        {/* Prize won */}
-        {meme.winner && meme.prizeAmount > 0n && (
-          <div className="mt-1.5 text-center bg-[#ffd700]/10 rounded py-1">
-            <span className="text-[11px] font-black text-[#ffd700] font-mono">{fmtC(meme.prizeAmount)} CLAWD</span>
-          </div>
-        )}
-
-        {/* Inline vote — compact */}
-        {(phase === 1 || phase === 2) && (
-          <div className="flex gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
-            <input
-              type="text"
-              value={voteAmount}
-              onChange={e => setVoteAmount(Number(meme.id), e.target.value)}
-              className="flex-1 min-w-0 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1.5 text-[11px] font-mono text-white placeholder-gray-700 focus:outline-none focus:border-[#ff00ff]/30"
-              placeholder="amount"
-            />
-            <button
-              onClick={() => onVote(Number(meme.id))}
-              disabled={isVoting}
-              className="btn-vote px-3 py-1.5 text-[10px] font-black shrink-0"
-            >
-              {isVoting ? (isVoteApproving ? "..." : "...") : "VOTE"}
-            </button>
-          </div>
-        )}
+        {/* Action buttons */}
+        <div className="flex gap-1.5 mt-2">
+          <a
+            href={meme.tweetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 text-center bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded px-2 py-1.5 text-[10px] font-mono text-gray-400 hover:text-white transition-all"
+          >
+            VIEW ON 𝕏
+          </a>
+          {isActive && (
+            isConnected ? (
+              <button
+                onClick={() => onBuy(Number(meme.id))}
+                disabled={isBuying}
+                className="btn-vote flex-1 px-3 py-1.5 text-[10px] font-black"
+              >
+                {isBuying ? "..." : "BUY 🔥"}
+              </button>
+            ) : (
+              <button
+                onClick={onConnect}
+                className="btn-vote flex-1 px-3 py-1.5 text-[10px] font-black"
+              >
+                CONNECT TO BUY
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
@@ -203,38 +230,27 @@ function MemeCard({
    MAIN PAGE
    ═══════════════════════════════════════════ */
 const Home: NextPage = () => {
-  const { address: connectedAddress } = useAccount();
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [previewMeme, setPreviewMeme] = useState<Meme | null>(null);
+  const { address: connectedAddress, isConnected } = useAccount();
   const [showSubmit, setShowSubmit] = useState(false);
-  const [imageUri, setImageUri] = useState("");
-  const [title, setTitle] = useState("");
-  const [voteAmounts, setVoteAmounts] = useState<Record<number, string>>({});
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [tweetUrl, setTweetUrl] = useState("");
+  const [tweetUrlError, setTweetUrlError] = useState("");
   const [isApproving, setIsApproving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [votingMemeId, setVotingMemeId] = useState<number | null>(null);
-  const [isVoteApproving, setIsVoteApproving] = useState(false);
+  const [buyingMemeId, setBuyingMemeId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("top");
 
   // Admin states
-  const [submissionDays, setSubmissionDays] = useState("5");
-  const [votingDays, setVotingDays] = useState("3");
-  const [fundAmount, setFundAmount] = useState("");
-  const [isStarting, setIsStarting] = useState(false);
-  const [isFunding, setIsFunding] = useState(false);
-  const [isFundApproving, setIsFundApproving] = useState(false);
-  const [isAdvancingVoting, setIsAdvancingVoting] = useState(false);
-  const [isAdvancingJudging, setIsAdvancingJudging] = useState(false);
-  const [winnerIds, setWinnerIds] = useState("");
-  const [winnerAmounts, setWinnerAmounts] = useState("");
+  const [bonusAmount, setBonusAmount] = useState("");
   const [isDistributing, setIsDistributing] = useState(false);
+  const [selectedWinners, setSelectedWinners] = useState<number[]>([]);
 
   /* ═══ Contract reads ═══ */
-  const { data: contestInfo } = useScaffoldReadContract({
+  const { data: contestInfo, refetch: refetchContest } = useScaffoldReadContract({
     contractName: "ClawdMemeContest",
     functionName: "getContestInfo",
   });
-  const { data: allMemes } = useScaffoldReadContract({
+  const { data: allMemes, refetch: refetchMemes } = useScaffoldReadContract({
     contractName: "ClawdMemeContest",
     functionName: "getAllMemes",
   });
@@ -246,9 +262,9 @@ const Home: NextPage = () => {
     contractName: "ClawdMemeContest",
     functionName: "submissionFee",
   });
-  const { data: voteFee } = useScaffoldReadContract({
+  const { data: voteCost } = useScaffoldReadContract({
     contractName: "ClawdMemeContest",
-    functionName: "voteFee",
+    functionName: "voteCost",
   });
   const { data: contractOwner } = useScaffoldReadContract({
     contractName: "ClawdMemeContest",
@@ -256,6 +272,7 @@ const Home: NextPage = () => {
   });
   const { data: contractInfo2 } = useDeployedContractInfo("ClawdMemeContest");
   const contestAddress = contractInfo2?.address;
+
   const { data: clawdBalance } = useScaffoldReadContract({
     contractName: "CLAWD",
     functionName: "balanceOf",
@@ -272,25 +289,25 @@ const Home: NextPage = () => {
   const { writeContractAsync: writeClawd } = useScaffoldWriteContract("CLAWD");
 
   /* ═══ Derived ═══ */
+  // Phase: 0=Inactive, 1=Active, 2=Completed
   const phase = contestInfo ? Number(contestInfo[0]) : 0;
   const memeCount = contestInfo ? Number(contestInfo[1]) : 0;
-  const prizePool = contestInfo ? contestInfo[2] : 0n;
-  const submissionEnd = contestInfo ? Number(contestInfo[3]) : 0;
-  const votingEnd = contestInfo ? Number(contestInfo[4]) : 0;
-  const contestId = contestInfo ? Number(contestInfo[5]) : 0;
+  const contestEnd = contestInfo ? Number(contestInfo[2]) : 0;
+  const contestId = contestInfo ? Number(contestInfo[3]) : 0;
+  const contractBalance = contestInfo ? contestInfo[4] : 0n;
   const isAdmin = connectedAddress && contractOwner && connectedAddress.toLowerCase() === contractOwner.toLowerCase();
+  const isActive = phase === 1;
+  const isCompleted = phase === 2;
 
   /* ═══ Sort memes ═══ */
   const sortedMemes = useMemo(() => {
     if (!allMemes) return [];
-    const memes = [...allMemes];
+    const memes = [...allMemes] as Meme[];
     switch (sortMode) {
       case "top":
         return memes.sort((a, b) => Number(b.totalVotes - a.totalVotes));
       case "new":
         return memes.sort((a, b) => Number(b.submittedAt - a.submittedAt));
-      case "winners":
-        return memes.filter(m => m.winner).sort((a, b) => Number(b.prizeAmount - a.prizeAmount));
       default:
         return memes;
     }
@@ -308,49 +325,40 @@ const Home: NextPage = () => {
     return () => clearInterval(iv);
   }, []);
 
+  const isEnded = isActive && now > contestEnd;
+
   const countdown = (end: number) => {
     const diff = end - now;
     if (diff <= 0) return "TIME'S UP";
-    const d = Math.floor(diff / 86400);
-    const h = Math.floor((diff % 86400) / 3600);
+    const h = Math.floor(diff / 3600);
     const m = Math.floor((diff % 3600) / 60);
     const s = diff % 60;
     const pad = (n: number) => n.toString().padStart(2, "0");
-    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   };
 
-  const activeEnd = phase === 1 ? submissionEnd : phase === 2 ? votingEnd : 0;
-
-  /* ═══ Ticker items — mix real stats with unhinged flavor ═══ */
-  const tickerItems = useMemo(() => {
-    const items: string[] = [];
-    items.push(`PRIZE POOL: ${fmtC(prizePool)} CLAWD`);
-    const shuffled = [...FLAVOR_LINES].sort(() => Math.random() - 0.5);
-    items.push(shuffled[0]);
-    items.push(`${memeCount} MEMES IN THE ARENA`);
-    items.push(shuffled[1]);
-    items.push(`${fmtC(totalBurned)} CLAWD BURNED`);
-    items.push(shuffled[2]);
-    if (activeEnd > 0) items.push(`${countdown(activeEnd)} REMAINING`);
-    items.push(`PRIZES: 40 / 25 / 15 / 10 / 10%`);
-    if (submissionFee) items.push(`ENTRY: ${fmtC(submissionFee)} CLAWD`);
-    return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prizePool, memeCount, totalBurned, activeEnd, submissionFee]);
+  /* ═══ RainbowKit connect ref ═══ */
+  const connectRef = useRef<(() => void) | null>(null);
 
   /* ═══════════════════════════════════════
      HANDLERS
      ═══════════════════════════════════════ */
+
   const handleSubmitMeme = async () => {
-    if (!imageUri || !title) return;
+    if (!tweetUrl) return;
+    if (!isValidTweetUrl(tweetUrl)) {
+      setTweetUrlError("Only X posts allowed — paste a tweet URL like https://x.com/user/status/123");
+      return;
+    }
+    setTweetUrlError("");
+
     const fee = submissionFee || 0n;
     const currentAllowance = clawdAllowance || 0n;
 
     if (currentAllowance < fee) {
       setIsApproving(true);
       try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, fee] });
+        await writeClawd({ functionName: "approve", args: [contestAddress, fee * 2n] });
       } catch {
         notification.error("Approval failed");
         setIsApproving(false);
@@ -361,121 +369,99 @@ const Home: NextPage = () => {
 
     setIsSubmitting(true);
     try {
-      await writeContest({ functionName: "submitMeme", args: [imageUri, title] });
-      notification.success("Meme submitted!");
+      await writeContest({ functionName: "submitMeme", args: [tweetUrl] });
+      notification.success("Meme submitted! 🦞");
       setShowSubmit(false);
-      setImageUri("");
-      setTitle("");
+      setTweetUrl("");
+      refetchMemes();
+      refetchContest();
     } catch {
       notification.error("Submission failed");
     }
     setIsSubmitting(false);
   };
 
-  const handleVote = async (memeId: number) => {
-    const amountStr = voteAmounts[memeId] || "";
-    if (!amountStr || Number(amountStr) <= 0) {
-      notification.error("Enter a vote amount");
+  const handleBuy = async (memeId: number) => {
+    const cost = voteCost || 0n;
+    const currentAllowance = clawdAllowance || 0n;
+
+    if (currentAllowance < cost) {
+      setBuyingMemeId(memeId);
+      try {
+        // Approve a generous amount so they don't have to re-approve every time
+        await writeClawd({ functionName: "approve", args: [contestAddress, cost * 100n] });
+      } catch {
+        notification.error("Approval failed");
+        setBuyingMemeId(null);
+        return;
+      }
+    }
+
+    setBuyingMemeId(memeId);
+    try {
+      await writeContest({ functionName: "vote", args: [BigInt(memeId)] });
+      notification.success("Bought! 🔥");
+      refetchMemes();
+      refetchContest();
+    } catch {
+      notification.error("Buy failed");
+    }
+    setBuyingMemeId(null);
+  };
+
+  const toggleWinner = (memeId: number) => {
+    setSelectedWinners(prev => {
+      if (prev.includes(memeId)) return prev.filter(id => id !== memeId);
+      if (prev.length >= 3) {
+        notification.error("Max 3 winners");
+        return prev;
+      }
+      return [...prev, memeId];
+    });
+  };
+
+  const handleDistribute = async () => {
+    if (selectedWinners.length === 0) {
+      notification.error("Select 1-3 winners");
       return;
     }
-    const amount = parseEther(amountStr);
-    const currentAllowance = clawdAllowance || 0n;
 
-    if (currentAllowance < amount) {
-      setVotingMemeId(memeId);
-      setIsVoteApproving(true);
-      try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
-      } catch {
-        notification.error("Approval failed");
-        setIsVoteApproving(false);
-        setVotingMemeId(null);
-        return;
-      }
-      setIsVoteApproving(false);
-    }
-
-    setVotingMemeId(memeId);
-    try {
-      await writeContest({ functionName: "vote", args: [BigInt(memeId), amount] });
-      notification.success("Vote cast!");
-      setVoteAmounts(prev => ({ ...prev, [memeId]: "" }));
-    } catch {
-      notification.error("Vote failed");
-    }
-    setVotingMemeId(null);
-  };
-
-  /* Admin handlers */
-  const handleStartContest = async () => {
-    setIsStarting(true);
-    try {
-      await writeContest({ functionName: "startContest", args: [BigInt(submissionDays), BigInt(votingDays)] });
-      notification.success("Contest started!");
-    } catch {
-      notification.error("Failed to start");
-    }
-    setIsStarting(false);
-  };
-
-  const handleFundPrizePool = async () => {
-    if (!fundAmount) return;
-    const amount = parseEther(fundAmount);
-    const currentAllowance = clawdAllowance || 0n;
-    if (currentAllowance < amount) {
-      setIsFundApproving(true);
-      try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
-      } catch {
-        notification.error("Approval failed");
-        setIsFundApproving(false);
-        return;
-      }
-      setIsFundApproving(false);
-    }
-    setIsFunding(true);
-    try {
-      await writeContest({ functionName: "fundPrizePool", args: [amount] });
-      notification.success("Prize pool funded!");
-      setFundAmount("");
-    } catch {
-      notification.error("Funding failed");
-    }
-    setIsFunding(false);
-  };
-
-  const handleAdvanceToVoting = async () => {
-    setIsAdvancingVoting(true);
-    try {
-      await writeContest({ functionName: "advanceToVoting" });
-      notification.success("Voting phase started!");
-    } catch {
-      notification.error("Failed");
-    }
-    setIsAdvancingVoting(false);
-  };
-
-  const handleAdvanceToJudging = async () => {
-    setIsAdvancingJudging(true);
-    try {
-      await writeContest({ functionName: "advanceToJudging" });
-      notification.success("Judging phase started!");
-    } catch {
-      notification.error("Failed");
-    }
-    setIsAdvancingJudging(false);
-  };
-
-  const handleDistributePrizes = async () => {
-    if (!winnerIds || !winnerAmounts) return;
     setIsDistributing(true);
     try {
-      const ids = winnerIds.split(",").map(s => BigInt(s.trim()));
-      const amounts = winnerAmounts.split(",").map(s => parseEther(s.trim()));
-      await writeContest({ functionName: "distributePrizes", args: [ids, amounts] });
-      notification.success("Prizes distributed!");
-    } catch {
-      notification.error("Distribution failed");
+      // Calculate split: contract balance + bonus, split among winners
+      // Top winner gets most, etc. Simple split: 50/30/20 for 3, 60/40 for 2, 100 for 1
+      const bonus = bonusAmount ? parseEther(bonusAmount) : 0n;
+      const total = (contractBalance || 0n) + bonus;
+
+      let amounts: bigint[];
+      if (selectedWinners.length === 1) {
+        amounts = [total];
+      } else if (selectedWinners.length === 2) {
+        amounts = [(total * 60n) / 100n, (total * 40n) / 100n];
+      } else {
+        amounts = [(total * 50n) / 100n, (total * 30n) / 100n, (total * 20n) / 100n];
+      }
+
+      // Approve bonus if needed
+      if (bonus > 0n) {
+        const currentAllowance = clawdAllowance || 0n;
+        if (currentAllowance < bonus) {
+          await writeClawd({ functionName: "approve", args: [contestAddress, bonus] });
+        }
+      }
+
+      const ids = selectedWinners.map(id => BigInt(id));
+      await writeContest({
+        functionName: "distributePrizes",
+        args: [ids, amounts, bonus > 0n ? bonus : 0n],
+      });
+      notification.success("Prizes distributed! 🏆");
+      setSelectedWinners([]);
+      setBonusAmount("");
+      refetchMemes();
+      refetchContest();
+    } catch (e: any) {
+      notification.error("Distribution failed: " + (e?.message?.slice(0, 100) || "unknown error"));
     }
     setIsDistributing(false);
   };
@@ -487,70 +473,73 @@ const Home: NextPage = () => {
     <div className="min-h-screen bg-black text-white scanlines">
       {/* ═══ TOP NAV ═══ */}
       <nav className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/[0.04]">
-        <div className="max-w-[1600px] mx-auto px-3 py-2.5 flex items-center justify-between gap-3">
-          {/* Left: brand + phase */}
+        <div className="max-w-[1400px] mx-auto px-3 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="hidden sm:block">
-              <span className="font-black text-sm tracking-wider font-mono">
-                <span className="text-[#ff00ff]">MEME</span>
-                <span className="text-white/80">ARENA</span>
-              </span>
-            </div>
+            <span className="font-black text-sm tracking-wider font-mono">
+              <span className="text-[#ff00ff]">CLAWD</span>
+              <span className="text-white/80"> MEME ARENA</span>
+            </span>
 
-            {/* Phase pill */}
-            <div
-              className="flex items-center gap-2 px-3 py-1 rounded-full shrink-0"
-              style={{ background: PHASE_COLORS[phase] + "12", border: `1px solid ${PHASE_COLORS[phase]}30` }}
-            >
-              <div className="live-dot" style={{ background: PHASE_COLORS[phase] }} />
-              <span className="text-[10px] font-black tracking-wider" style={{ color: PHASE_COLORS[phase] }}>
-                {PHASE_LABELS[phase]}
-              </span>
-              {activeEnd > 0 && (
-                <span className="text-[11px] font-mono font-bold flicker" style={{ color: PHASE_COLORS[phase] }}>
-                  {countdown(activeEnd)}
+            {/* Phase + countdown */}
+            {isActive && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#39ff14]/10 border border-[#39ff14]/20">
+                <div className="live-dot" style={{ background: "#39ff14" }} />
+                <span className="text-[10px] font-black tracking-wider text-[#39ff14]">
+                  {isEnded ? "TIME'S UP" : "LIVE"}
                 </span>
-              )}
-            </div>
+                {!isEnded && contestEnd > 0 && (
+                  <span className="text-[11px] font-mono font-bold text-[#39ff14] flicker">
+                    {countdown(contestEnd)}
+                  </span>
+                )}
+              </div>
+            )}
+            {isCompleted && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#ffd700]/10 border border-[#ffd700]/20">
+                <span className="text-[10px] font-black tracking-wider text-[#ffd700]">WINNERS CROWNED 🏆</span>
+              </div>
+            )}
           </div>
 
-          {/* Right: stats + submit + connect */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Prize pool inline */}
+            {/* Stats */}
             <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <span className="text-[9px] text-gray-600 font-mono">PRIZE</span>
-              <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(prizePool)}</span>
+              <span className="text-[9px] text-gray-600 font-mono">POOL</span>
+              <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(contractBalance)}</span>
             </div>
-
-            {/* Burned inline */}
             <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
               <span className="text-[9px] text-gray-600 font-mono">BURN</span>
               <span className="text-[11px] font-black font-mono text-[#ff3366]">{fmtC(totalBurned)}</span>
             </div>
 
-            {/* Submit button */}
-            {phase === 1 && (
+            {/* Submit */}
+            {isActive && !isEnded && isConnected && (
               <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
-                SUBMIT
+                SUBMIT MEME
               </button>
             )}
 
             {/* Admin */}
-            {isAdmin && (
-              <button onClick={() => setShowAdmin(!showAdmin)} className="text-gray-600 hover:text-[#ffd700] transition-colors text-[10px] font-mono">
-                ADM
+            {isAdmin && (isEnded || isCompleted) && (
+              <button
+                onClick={() => setShowAdmin(!showAdmin)}
+                className="text-[#ffd700] hover:text-[#ffdd33] transition-colors text-[10px] font-mono font-bold border border-[#ffd700]/30 px-2 py-1 rounded"
+              >
+                JUDGE
               </button>
             )}
 
             {/* Connect */}
             <ConnectButton.Custom>
               {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+                // Store connect function for child components
+                if (openConnectModal) connectRef.current = openConnectModal;
                 const connected = mounted && account && chain;
                 return (
                   <div {...(!mounted && { style: { opacity: 0, pointerEvents: "none" as const, userSelect: "none" as const } })}>
                     {!connected ? (
-                      <button onClick={openConnectModal} className="bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg px-3 py-1.5 text-[11px] font-bold text-white transition-all">
-                        Connect
+                      <button onClick={openConnectModal} className="bg-[#ff00ff] hover:bg-[#ff33ff] text-white font-black font-mono text-[11px] rounded-lg px-4 py-1.5 transition-all uppercase tracking-wider">
+                        Connect Wallet
                       </button>
                     ) : chain?.unsupported ? (
                       <button onClick={openChainModal} className="bg-red-600/20 border border-red-500/30 rounded-lg px-3 py-1.5 text-[11px] font-bold text-red-400">
@@ -570,174 +559,120 @@ const Home: NextPage = () => {
         </div>
       </nav>
 
-      {/* ═══ SCROLLING TICKER ═══ */}
-      <Ticker items={tickerItems} />
-
       {/* ═══ SORT TABS + COUNT ═══ */}
-      <div className="max-w-[1600px] mx-auto px-3 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <button className={`sort-tab ${sortMode === "top" ? "active" : ""}`} onClick={() => setSortMode("top")}>
-            TOP
-          </button>
-          <button className={`sort-tab ${sortMode === "new" ? "active" : ""}`} onClick={() => setSortMode("new")}>
-            NEW
-          </button>
-          <button className={`sort-tab ${sortMode === "winners" ? "active" : ""}`} onClick={() => setSortMode("winners")}>
-            WINNERS
-          </button>
+      {sortedMemes.length > 0 && (
+        <div className="max-w-[1400px] mx-auto px-3 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button className={`sort-tab ${sortMode === "top" ? "active" : ""}`} onClick={() => setSortMode("top")}>
+              TOP
+            </button>
+            <button className={`sort-tab ${sortMode === "new" ? "active" : ""}`} onClick={() => setSortMode("new")}>
+              NEW
+            </button>
+          </div>
+          <div className="text-[11px] text-gray-600 font-mono">
+            {sortedMemes.length} meme{sortedMemes.length !== 1 ? "s" : ""}
+            {voteCost && <span className="ml-2 text-gray-700">buy = {fmtC(voteCost)} CLAWD</span>}
+          </div>
         </div>
-        <div className="text-[11px] text-gray-600 font-mono">
-          {sortedMemes.length} meme{sortedMemes.length !== 1 ? "s" : ""}
-          {contestId > 0 && <span className="ml-2 text-gray-700">szn {contestId}</span>}
-        </div>
-      </div>
+      )}
 
-      {/* ═══ THE GALLERY — THIS IS THE PAGE ═══ */}
-      {sortedMemes.length > 0 ? (
-        <div className="max-w-[1600px] mx-auto px-2 pb-8">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
+      {/* ═══ CONTENT ═══ */}
+      {!isConnected ? (
+        /* ═══ NOT CONNECTED — BIG CONNECT CTA ═══ */
+        <div className="max-w-lg mx-auto px-4 py-24 text-center">
+          <h1 className="text-4xl font-black font-mono mb-3">
+            <span className="text-[#ff00ff]">CLAWD</span> MEME ARENA
+          </h1>
+          <p className="text-gray-500 font-mono text-sm mb-2">
+            Submit your best memes as tweets. Buy the ones you love.
+          </p>
+          <p className="text-gray-600 font-mono text-xs mb-8">
+            Clawd picks the top 3. Winners split the pot + bonus $CLAWD.
+          </p>
+          <ConnectButton.Custom>
+            {({ openConnectModal, mounted }) => (
+              <button
+                onClick={openConnectModal}
+                disabled={!mounted}
+                className="btn-hot px-10 py-4 text-lg"
+              >
+                CONNECT WALLET
+              </button>
+            )}
+          </ConnectButton.Custom>
+          <p className="text-gray-700 font-mono text-[10px] mt-4">
+            on Base · powered by $CLAWD · judged by an AI lobster
+          </p>
+        </div>
+      ) : sortedMemes.length > 0 ? (
+        /* ═══ MEME GRID ═══ */
+        <div className="max-w-[1400px] mx-auto px-2 pb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {sortedMemes.map((meme, rank) => (
               <MemeCard
                 key={Number(meme.id)}
-                meme={meme}
+                meme={meme as Meme}
                 rank={rank}
                 maxVotes={maxVotes}
-                phase={phase}
-                onPreview={setPreviewMeme}
-                onVote={handleVote}
-                voteAmount={voteAmounts[Number(meme.id)] || ""}
-                setVoteAmount={(id, v) => setVoteAmounts(prev => ({ ...prev, [id]: v }))}
-                votingMemeId={votingMemeId}
-                isVoteApproving={isVoteApproving}
+                isActive={isActive && !isEnded}
+                isConnected={isConnected}
+                onBuy={handleBuy}
+                isBuying={buyingMemeId === Number(meme.id)}
+                onConnect={() => connectRef.current?.()}
               />
             ))}
           </div>
         </div>
       ) : (
-        /* ═══ EMPTY STATE — with personality ═══ */
+        /* ═══ CONNECTED BUT NO MEMES ═══ */
         <div className="max-w-lg mx-auto px-4 py-20 text-center">
-          {phase === 0 ? (
+          {isActive && !isEnded ? (
             <>
-              <h2 className="text-2xl font-black text-gray-500 mb-2 font-mono">ARENA CLOSED</h2>
-              <p className="text-gray-700 font-mono text-xs">
-                No active contest. Check back later.
-              </p>
-            </>
-          ) : phase === 1 ? (
-            <>
-              <h2 className="text-2xl font-black text-white mb-2 font-mono">NO MEMES YET</h2>
-              <p className="text-gray-600 font-mono text-xs mb-6">
-                The arena is open. Be first.
+              <h2 className="text-3xl font-black text-white mb-3 font-mono">THE ARENA IS EMPTY</h2>
+              <p className="text-gray-500 font-mono text-sm mb-6">
+                Be the first to submit a meme. Post your meme as a tweet, then paste the URL here.
               </p>
               <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
-                SUBMIT FIRST
+                SUBMIT FIRST MEME
               </button>
-            </>
-          ) : phase === 4 && sortMode === "winners" ? (
-            <>
-              <h2 className="text-2xl font-black text-gray-500 mb-2 font-mono">NO WINNERS YET</h2>
-              <p className="text-gray-600 font-mono text-xs">
-                Switch to TOP to see all entries.
+              <p className="text-gray-700 font-mono text-[10px] mt-3">
+                costs {fmtC(submissionFee)} CLAWD · 10% burned
               </p>
+            </>
+          ) : isCompleted ? (
+            <>
+              <h2 className="text-2xl font-black text-[#ffd700] mb-2 font-mono">CONTEST COMPLETE</h2>
+              <p className="text-gray-600 font-mono text-xs">Winners have been crowned. Next contest coming soon.</p>
             </>
           ) : (
             <>
-              <h2 className="text-2xl font-black text-gray-600 mb-2 font-mono">EMPTY</h2>
-              <p className="text-gray-700 font-mono text-xs">
-                Try a different tab.
-              </p>
+              <h2 className="text-2xl font-black text-gray-500 mb-2 font-mono">NO ACTIVE CONTEST</h2>
+              <p className="text-gray-700 font-mono text-xs">Check back later.</p>
             </>
           )}
         </div>
       )}
 
-      {/* ═══ FOOTER — compact, personality ═══ */}
+      {/* ═══ FOOTER ═══ */}
       <footer className="border-t border-white/[0.03] py-5 mt-8">
-        <div className="max-w-[1600px] mx-auto px-3 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
-            <span>prizes: 40/25/15/10/10%</span>
-            <span className="text-gray-800">·</span>
-            <span>10% burned</span>
-            <span className="text-gray-800">·</span>
-            <span>submit → vote → judge → win</span>
+        <div className="max-w-[1400px] mx-auto px-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="text-[10px] text-gray-700 font-mono">
+            submit: {fmtC(submissionFee)} CLAWD · buy: {fmtC(voteCost)} CLAWD · 10% burned · top 3 win
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono flex-wrap justify-center">
+          <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono">
             {contestAddress && (
-              <span className="text-gray-700">{contestAddress.slice(0, 6)}...{contestAddress.slice(-4)}</span>
+              <a href={`https://basescan.org/address/${contestAddress}`} target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">
+                {contestAddress.slice(0, 6)}...{contestAddress.slice(-4)}
+              </a>
             )}
             <span className="text-gray-800">·</span>
-            <a
-              href="https://clawdbotatg.eth.link"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors"
-            >
-              built by clawd
+            <a href="https://clawdbotatg.eth.link" target="_blank" rel="noopener noreferrer" className="text-[#ff00ff]/40 hover:text-[#ff00ff] transition-colors">
+              built by clawd 🦞
             </a>
-            <span className="text-gray-800">·</span>
-            <span className="text-gray-800">unaudited. degen responsibly.</span>
           </div>
         </div>
       </footer>
-
-      {/* ═══ ADMIN MODAL ═══ */}
-      {showAdmin && isAdmin && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowAdmin(false)}>
-          <div className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-black text-[#ffd700] font-mono tracking-wider uppercase">ADMIN</h3>
-              <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">✕</button>
-            </div>
-
-            <div className="space-y-3">
-              {(phase === 0 || phase === 4) && (
-                <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Start Contest</div>
-                  <div className="flex gap-2 mb-2">
-                    <input type="number" value={submissionDays} onChange={e => setSubmissionDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
-                    <span className="text-gray-600 self-center text-[10px]">sub</span>
-                    <input type="number" value={votingDays} onChange={e => setVotingDays(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-16 text-white text-xs font-mono focus:outline-none focus:border-[#ffd700]/50" />
-                    <span className="text-gray-600 self-center text-[10px]">vote</span>
-                  </div>
-                  <button onClick={handleStartContest} disabled={isStarting} className="btn-hot w-full py-2 text-xs bg-[#39ff14] hover:bg-[#44ff22]" style={{ boxShadow: "0 3px 0 #1a8a0a" }}>
-                    {isStarting ? "Starting..." : "START"}
-                  </button>
-                </div>
-              )}
-
-              <div className="bg-white/[0.03] rounded-lg p-3">
-                <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Fund Prize Pool</div>
-                <input type="text" value={fundAmount} onChange={e => setFundAmount(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none focus:border-[#ffd700]/50" placeholder="CLAWD" />
-                <button onClick={handleFundPrizePool} disabled={isFunding || isFundApproving} className="btn-hot w-full py-2 text-xs bg-[#ffd700] hover:bg-[#ffdd33] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
-                  {isFundApproving ? "Approving..." : isFunding ? "Funding..." : "FUND"}
-                </button>
-              </div>
-
-              {phase === 1 && (
-                <button onClick={handleAdvanceToVoting} disabled={isAdvancingVoting} className="btn-hot w-full py-2 text-xs">
-                  {isAdvancingVoting ? "..." : "ADVANCE TO VOTING"}
-                </button>
-              )}
-              {phase === 2 && (
-                <button onClick={handleAdvanceToJudging} disabled={isAdvancingJudging} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
-                  {isAdvancingJudging ? "..." : "ADVANCE TO JUDGING"}
-                </button>
-              )}
-
-              {phase === 3 && (
-                <div className="bg-white/[0.03] rounded-lg p-3">
-                  <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Distribute Prizes</div>
-                  <input type="text" value={winnerIds} onChange={e => setWinnerIds(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-1.5 focus:outline-none" placeholder="IDs: 1,3,5" />
-                  <input type="text" value={winnerAmounts} onChange={e => setWinnerAmounts(e.target.value)} className="bg-black border border-white/10 rounded px-2 py-1.5 w-full text-white text-xs font-mono mb-2 focus:outline-none" placeholder="Amounts: 1000000,500000" />
-                  <button onClick={handleDistributePrizes} disabled={isDistributing} className="btn-hot w-full py-2 text-xs bg-[#ffd700] text-black" style={{ boxShadow: "0 3px 0 #b39600" }}>
-                    {isDistributing ? "..." : "DISTRIBUTE"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ═══ SUBMIT MODAL ═══ */}
       {showSubmit && (
@@ -748,40 +683,36 @@ const Home: NextPage = () => {
               <button onClick={() => setShowSubmit(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
             <p className="text-[10px] text-gray-600 font-mono mb-4">
-              judged by an AI lobster. choose wisely.
+              Post your meme on X first, then paste the tweet URL here.
             </p>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 block">Image URL</label>
+                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 block">Tweet URL</label>
                 <input
                   type="text"
-                  value={imageUri}
-                  onChange={e => setImageUri(e.target.value)}
-                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="https://..."
+                  value={tweetUrl}
+                  onChange={e => {
+                    setTweetUrl(e.target.value);
+                    setTweetUrlError("");
+                  }}
+                  className={`w-full bg-black border rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none placeholder-gray-700 ${
+                    tweetUrlError ? "border-red-500/50 focus:border-red-500" : "border-white/10 focus:border-[#ff00ff]/40"
+                  }`}
+                  placeholder="https://x.com/you/status/123456789"
                 />
+                {tweetUrlError && (
+                  <p className="text-red-400 text-[10px] font-mono mt-1">{tweetUrlError}</p>
+                )}
+                <p className="text-gray-700 text-[9px] font-mono mt-1">Only X (twitter.com / x.com) posts allowed</p>
               </div>
 
-              {imageUri && (
-                <div className="bg-[#080808] rounded-lg overflow-hidden border border-white/[0.04]">
-                  <img src={imageUri} alt="Preview" className="max-h-40 mx-auto" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              {/* Tweet preview */}
+              {tweetUrl && isValidTweetUrl(tweetUrl) && extractTweetId(tweetUrl) && (
+                <div className="bg-[#080808] rounded-lg overflow-hidden border border-white/[0.04] max-h-[200px] overflow-y-auto">
+                  <TweetEmbed tweetId={extractTweetId(tweetUrl)!} />
                 </div>
               )}
-
-              <div>
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-mono mb-1 flex justify-between">
-                  <span>Title (make it count)</span>
-                  <span className="text-gray-700">{title.length}/100</span>
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value.slice(0, 100))}
-                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/40 placeholder-gray-700"
-                  placeholder="Name your meme"
-                />
-              </div>
 
               <div className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2.5">
                 <span className="text-[10px] text-gray-500 font-mono">Entry fee</span>
@@ -791,109 +722,117 @@ const Home: NextPage = () => {
                 </div>
               </div>
 
-              {!connectedAddress ? (
+              {!isConnected ? (
                 <ConnectButton.Custom>
                   {({ openConnectModal, mounted }) => (
-                    <button
-                      onClick={openConnectModal}
-                      disabled={!mounted}
-                      className="btn-hot w-full py-3 text-sm bg-white/10 hover:bg-white/20"
-                      style={{ boxShadow: "0 3px 0 #333" }}
-                    >
-                      CONNECT WALLET
+                    <button onClick={openConnectModal} disabled={!mounted} className="btn-hot w-full py-3 text-sm">
+                      CONNECT WALLET TO SUBMIT
                     </button>
                   )}
                 </ConnectButton.Custom>
               ) : (
                 <button
                   onClick={handleSubmitMeme}
-                  disabled={!imageUri || !title || isApproving || isSubmitting}
+                  disabled={!tweetUrl || isApproving || isSubmitting}
                   className="btn-hot w-full py-3 text-sm"
                 >
                   {isApproving ? "APPROVING..." : isSubmitting ? "SUBMITTING..." : "SUBMIT"}
                 </button>
               )}
 
-              <p className="text-center text-[9px] text-gray-700 font-mono">
-                no refunds.
-              </p>
+              <p className="text-center text-[9px] text-gray-700 font-mono">no refunds. choose wisely.</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ═══ PREVIEW MODAL — FULL SCREEN ═══ */}
-      {previewMeme && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-2 md:p-4" onClick={() => setPreviewMeme(null)}>
-          <div className="relative max-w-4xl w-full max-h-[95vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            {/* Close */}
-            <button
-              onClick={() => setPreviewMeme(null)}
-              className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/70 backdrop-blur-sm border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-all text-sm"
-            >
-              ✕
-            </button>
-
-            {/* Image */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden rounded-t-xl bg-[#050505]">
-              <img
-                src={previewMeme.imageUri}
-                alt={previewMeme.title}
-                className="max-w-full max-h-[70vh] object-contain"
-                onError={e => {
-                  (e.target as HTMLImageElement).src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect fill='%23080808' width='400' height='400'/><text x='200' y='205' text-anchor='middle' fill='%23222' font-size='12' font-family='monospace'>NO IMAGE</text></svg>`;
-                }}
-              />
+      {/* ═══ ADMIN / JUDGE MODAL ═══ */}
+      {showAdmin && isAdmin && (
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4" onClick={() => setShowAdmin(false)}>
+          <div className="bg-[#0a0a0a] border border-[#ffd700]/20 rounded-xl p-5 max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-black text-[#ffd700] font-mono tracking-wider uppercase">🦞 PICK WINNERS</h3>
+              <button onClick={() => setShowAdmin(false)} className="text-gray-500 hover:text-white">✕</button>
             </div>
 
-            {/* Bottom info bar */}
-            <div className="bg-[#0a0a0a] border-t border-white/[0.04] rounded-b-xl px-5 py-3">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="text-lg font-black text-white truncate">{previewMeme.title}</h3>
-                  <a
-                    href={`https://basescan.org/address/${previewMeme.creator}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-gray-600 font-mono mt-0.5 block hover:text-gray-400 transition-colors"
+            <p className="text-[11px] text-gray-500 font-mono mb-4">
+              Select up to 3 winning memes. Prize split: {selectedWinners.length === 1 ? "100%" : selectedWinners.length === 2 ? "60/40" : "50/30/20"}.
+              All CLAWD in the contract ({fmtCFull(contractBalance)}) + your bonus goes to winners.
+            </p>
+
+            {/* Meme list for selection */}
+            <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
+              {(allMemes || []).map((meme: any) => {
+                const isSelected = selectedWinners.includes(Number(meme.id));
+                return (
+                  <div
+                    key={Number(meme.id)}
+                    onClick={() => toggleWinner(Number(meme.id))}
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all border ${
+                      isSelected
+                        ? "bg-[#ffd700]/10 border-[#ffd700]/30"
+                        : "bg-white/[0.02] border-white/[0.04] hover:border-white/[0.08]"
+                    }`}
                   >
-                    {previewMeme.creator.slice(0, 6)}...{previewMeme.creator.slice(-4)}
-                  </a>
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right">
-                    <div className="text-xl font-black font-mono text-[#39ff14]">{fmtCFull(previewMeme.totalVotes)}</div>
-                    <div className="text-[9px] text-gray-600 font-mono">CLAWD VOTED</div>
-                  </div>
-                  {previewMeme.winner && previewMeme.prizeAmount > 0n && (
-                    <div className="text-right">
-                      <div className="text-xl font-black font-mono text-[#ffd700] neon-gold">{fmtC(previewMeme.prizeAmount)}</div>
-                      <div className="text-[9px] text-gray-600 font-mono">PRIZE WON</div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
+                        isSelected ? "bg-[#ffd700] text-black" : "bg-white/[0.05] text-gray-600"
+                      }`}>
+                        {isSelected ? selectedWinners.indexOf(Number(meme.id)) + 1 : ""}
+                      </div>
+                      <span className="text-[11px] font-mono text-gray-400 truncate">{meme.tweetUrl}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Vote in modal */}
-              {(phase === 1 || phase === 2) && (
-                <div className="flex gap-2 mt-3">
-                  <input
-                    type="text"
-                    value={voteAmounts[Number(previewMeme.id)] || ""}
-                    onChange={e => setVoteAmounts(prev => ({ ...prev, [Number(previewMeme.id)]: e.target.value }))}
-                    className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff00ff]/30 placeholder-gray-700"
-                    placeholder={`min ${fmtC(voteFee)} CLAWD`}
-                  />
-                  <button
-                    onClick={() => handleVote(Number(previewMeme.id))}
-                    disabled={votingMemeId === Number(previewMeme.id)}
-                    className="btn-hot px-6 py-2.5 text-sm"
-                  >
-                    {votingMemeId === Number(previewMeme.id) ? "..." : "VOTE"}
-                  </button>
-                </div>
-              )}
+                    <span className="text-[11px] font-mono font-bold text-[#39ff14] shrink-0 ml-2">
+                      {fmtC(meme.totalVotes)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Bonus amount */}
+            <div className="bg-white/[0.03] rounded-lg p-3 mb-3">
+              <label className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1 block">
+                Bonus CLAWD from your wallet (optional)
+              </label>
+              <input
+                type="text"
+                value={bonusAmount}
+                onChange={e => setBonusAmount(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-[#ffd700]/50 placeholder-gray-700"
+                placeholder="0"
+              />
+              <p className="text-[9px] text-gray-700 font-mono mt-1">
+                This gets pulled from your wallet and added to the prize pool before distribution.
+              </p>
+            </div>
+
+            {/* Summary */}
+            {selectedWinners.length > 0 && (
+              <div className="bg-white/[0.03] rounded-lg p-3 mb-3">
+                <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2">Prize Split Preview</div>
+                {(() => {
+                  const bonus = bonusAmount ? parseEther(bonusAmount) : 0n;
+                  const total = (contractBalance || 0n) + bonus;
+                  const splits = selectedWinners.length === 1 ? [100n] : selectedWinners.length === 2 ? [60n, 40n] : [50n, 30n, 20n];
+                  return selectedWinners.map((id, i) => (
+                    <div key={id} className="flex justify-between text-[11px] font-mono py-0.5">
+                      <span className="text-gray-400">#{i + 1} (meme {id})</span>
+                      <span className="text-[#ffd700] font-bold">{fmtCFull((total * splits[i]) / 100n)} CLAWD</span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+
+            <button
+              onClick={handleDistribute}
+              disabled={selectedWinners.length === 0 || isDistributing}
+              className="btn-hot w-full py-3 text-sm bg-[#ffd700] hover:bg-[#ffdd33] text-black"
+              style={{ boxShadow: "0 3px 0 #b39600" }}
+            >
+              {isDistributing ? "DISTRIBUTING..." : `DISTRIBUTE TO ${selectedWinners.length} WINNER${selectedWinners.length !== 1 ? "S" : ""}`}
+            </button>
           </div>
         </div>
       )}
