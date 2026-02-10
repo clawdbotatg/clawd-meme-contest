@@ -12,9 +12,9 @@ contract DeployMemeContest is ScaffoldETHDeploy {
     address constant BASE_OWNER = 0x11ce532845cE0eAcdA41f72FDc1C88c335981442;
 
     function run() external ScaffoldEthDeployerRunner {
-        uint256 submissionFee = 615_000 * 1e18; // 615,000 CLAWD to submit
-        uint256 voteCost = 308_000 * 1e18;       // 308,000 CLAWD per vote (one-click)
-        uint256 burnBps = 1000;                   // 10%
+        uint256 submissionFee = 100 * 1e18;  // 100 CLAWD to submit
+        uint256 voteCost = 50 * 1e18;        // 50 CLAWD per vote (one-click)
+        uint256 burnBps = 1000;              // 10%
 
         uint256 durationHours = 2; // 2-hour contest
 

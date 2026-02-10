@@ -628,7 +628,7 @@ const Home: NextPage = () => {
           onClick={() => setShowSubmit(false)}
         >
           <div
-            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-md w-full"
+            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-2xl w-full"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-1">
@@ -666,7 +666,7 @@ const Home: NextPage = () => {
 
               {/* Tweet preview */}
               {tweetUrl && isValidTweetUrl(tweetUrl) && extractTweetId(tweetUrl) && (
-                <div className="bg-[#080808] rounded-lg overflow-hidden border border-white/[0.04] max-h-[200px] overflow-y-auto">
+                <div className="bg-[#080808] rounded-lg overflow-hidden border border-white/[0.04] max-h-[500px] overflow-y-auto">
                   <TweetEmbed tweetId={extractTweetId(tweetUrl)!} />
                 </div>
               )}
