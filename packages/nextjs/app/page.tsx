@@ -100,10 +100,11 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
   }, [tweetId]);
 
   return (
-    <div ref={ref} className={className}>
+    <div className={className}>
       {!loaded && (
         <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono">Loading tweet...</div>
       )}
+      <div ref={ref} />
     </div>
   );
 }
@@ -256,7 +257,7 @@ const Home: NextPage = () => {
     contractName: "ClawdMemeContest",
     functionName: "owner",
   });
-  const { data: contractInfo2 } = useDeployedContractInfo("ClawdMemeContest");
+  const { data: contractInfo2 } = useDeployedContractInfo({ contractName: "ClawdMemeContest" });
   const contestAddress = contractInfo2?.address;
 
   // clawdBalance displayed in SE2 header
@@ -272,8 +273,8 @@ const Home: NextPage = () => {
   });
 
   /* ═══ Contract writes ═══ */
-  const { writeContractAsync: writeContest } = useScaffoldWriteContract("ClawdMemeContest");
-  const { writeContractAsync: writeClawd } = useScaffoldWriteContract("CLAWD");
+  const { writeContractAsync: writeContest } = useScaffoldWriteContract({ contractName: "ClawdMemeContest" });
+  const { writeContractAsync: writeClawd } = useScaffoldWriteContract({ contractName: "CLAWD" });
 
   /* ═══ Derived ═══ */
   // Phase: 0=Inactive, 1=Active, 2=Completed
