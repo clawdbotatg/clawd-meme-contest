@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     ClawdMemeContest: {
-      address: "0xb9adfcd1043e4460c13a21d4600f2978ed1246cf",
+      address: "0x3aE6AF15c2699ab4F39394c58CBdD829A1d31F59",
       abi: [
         {
           type: "constructor",
@@ -38,7 +38,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "_durationHours",
+              name: "_durationMinutes",
               type: "uint256",
               internalType: "uint256",
             },
@@ -428,7 +428,7 @@ const deployedContracts = {
           name: "startContest",
           inputs: [
             {
-              name: "_durationHours",
+              name: "_durationMinutes",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1135,7 +1135,7 @@ const deployedContracts = {
               internalType: "address",
             },
             {
-              name: "_durationHours",
+              name: "_durationMinutes",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1525,7 +1525,7 @@ const deployedContracts = {
           name: "startContest",
           inputs: [
             {
-              name: "_durationHours",
+              name: "_durationMinutes",
               type: "uint256",
               internalType: "uint256",
             },

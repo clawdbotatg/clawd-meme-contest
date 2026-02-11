@@ -50,61 +50,17 @@ type SortMode = "top" | "new";
    TWEET EMBED COMPONENT
    ═══════════════════════════════════════════ */
 function TweetEmbed({ tweetId, className }: { tweetId: string; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const w = window as any;
-    const render = () => {
-      if (w.twttr?.widgets) {
-        // Clear previous
-        if (ref.current) ref.current.innerHTML = "";
-        w.twttr.widgets
-          .createTweet(tweetId, ref.current, {
-            theme: "dark",
-            conversation: "none",
-            cards: "visible",
-            width: 400,
-            dnt: true,
-          })
-          .then(() => setLoaded(true))
-          .catch(() => setLoaded(true));
-      }
-    };
-
-    if (w.twttr?.widgets) {
-      render();
-    } else {
-      // Load Twitter widget script
-      if (!document.getElementById("twitter-wjs")) {
-        const script = document.createElement("script");
-        script.id = "twitter-wjs";
-        script.src = "https://platform.twitter.com/widgets.js";
-        script.async = true;
-        script.onload = () => {
-          setTimeout(render, 100);
-        };
-        document.head.appendChild(script);
-      } else {
-        // Script loading, wait for it
-        const iv = setInterval(() => {
-          if (w.twttr?.widgets) {
-            clearInterval(iv);
-            render();
-          }
-        }, 200);
-        return () => clearInterval(iv);
-      }
-    }
-  }, [tweetId]);
+  // Use publish.twitter.com iframe — no JS widget, no double-render issues
+  const src = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}&theme=dark&dnt=true&hideCard=false&hideThread=true&width=400`;
 
   return (
-    <div className={className}>
-      {!loaded && (
-        <div className="flex items-center justify-center h-32 text-gray-600 text-xs font-mono">Loading tweet...</div>
-      )}
-      <div ref={ref} />
+    <div className={className} style={{ background: "#000", overflow: "hidden", marginRight: "-1px" }}>
+      <iframe
+        src={src}
+        scrolling="no"
+        style={{ width: "calc(100% + 20px)", minHeight: 500, border: "none", background: "#000", colorScheme: "dark" }}
+        allowFullScreen
+      />
     </div>
   );
 }
@@ -148,15 +104,15 @@ function MemeCard({
         </div>
       )}
 
-      {/* Prize badge */}
+      {/* Prize badge — big overlay */}
       {hasPrize && (
-        <div className="absolute top-2 right-2 z-10 bg-[#ffd700] text-black text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-          🏆 {fmtC(meme.prizeAmount)}
+        <div className="absolute top-3 right-3 z-10 bg-[#ffd700] text-black text-lg font-black px-4 py-2 rounded-lg uppercase tracking-wider shadow-lg shadow-[#ffd700]/30">
+          🏆 {fmtC(meme.prizeAmount)} CLAWD
         </div>
       )}
 
       {/* Tweet embed */}
-      <div className="min-h-[150px]">
+      <div className="min-h-[150px]" style={{ background: "#000", overflow: "hidden" }}>
         {tweetId ? (
           <TweetEmbed tweetId={tweetId} />
         ) : (
@@ -289,7 +245,14 @@ const Home: NextPage = () => {
   /* ═══ Sort memes ═══ */
   const sortedMemes = useMemo(() => {
     if (!allMemes) return [];
-    const memes = [...allMemes] as Meme[];
+    // Deduplicate by meme id (prevents double-render on refetch race)
+    const seen = new Set<string>();
+    const memes = ([...allMemes] as Meme[]).filter(m => {
+      const key = m.id.toString();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     switch (sortMode) {
       case "top":
         return memes.sort((a, b) => Number(b.totalVotes - a.totalVotes));
@@ -344,7 +307,7 @@ const Home: NextPage = () => {
     if (currentAllowance < fee) {
       setIsApproving(true);
       try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, fee * 2n] });
+        await writeClawd({ functionName: "approve", args: [contestAddress, fee * 4n] });
       } catch {
         notification.error("Approval failed");
         setIsApproving(false);
@@ -359,8 +322,11 @@ const Home: NextPage = () => {
       notification.success("Meme submitted! 🦞");
       setShowSubmit(false);
       setTweetUrl("");
-      refetchMemes();
-      refetchContest();
+      // Small delay before refetch to let chain state settle
+      setTimeout(() => {
+        refetchMemes();
+        refetchContest();
+      }, 3000);
     } catch {
       notification.error("Submission failed");
     }
@@ -374,8 +340,7 @@ const Home: NextPage = () => {
     if (currentAllowance < cost) {
       setBuyingMemeId(memeId);
       try {
-        // Approve a generous amount so they don't have to re-approve every time
-        await writeClawd({ functionName: "approve", args: [contestAddress, cost * 100n] });
+        await writeClawd({ functionName: "approve", args: [contestAddress, cost * 4n] });
       } catch {
         notification.error("Approval failed");
         setBuyingMemeId(null);
@@ -387,8 +352,10 @@ const Home: NextPage = () => {
     try {
       await writeContest({ functionName: "vote", args: [BigInt(memeId)] });
       notification.success("Bought! 🔥");
-      refetchMemes();
-      refetchContest();
+      setTimeout(() => {
+        refetchMemes();
+        refetchContest();
+      }, 3000);
     } catch {
       notification.error("Buy failed");
     }
@@ -548,7 +515,7 @@ const Home: NextPage = () => {
       ) : sortedMemes.length > 0 ? (
         /* ═══ MEME GRID ═══ */
         <div className="max-w-[1400px] mx-auto px-2 pb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             {sortedMemes.map((meme, rank) => (
               <MemeCard
                 key={Number(meme.id)}
@@ -724,7 +691,7 @@ const Home: NextPage = () => {
 
             {/* Meme list for selection */}
             <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
-              {(allMemes || []).map((meme: any) => {
+              {[...(allMemes || [])].sort((a: any, b: any) => Number(b.totalVotes - a.totalVotes)).map((meme: any) => {
                 const isSelected = selectedWinners.includes(Number(meme.id));
                 return (
                   <div

@@ -56,18 +56,18 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         uint256 _voteCost,
         uint256 _burnBps,
         address _owner,
-        uint256 _durationHours
+        uint256 _durationMinutes
     ) Ownable(_owner) {
         require(_clawd != address(0), "Invalid token");
         require(_burnBps <= 5000, "Burn too high");
-        require(_durationHours > 0, "Invalid duration");
+        require(_durationMinutes > 0, "Invalid duration");
         clawd = IERC20(_clawd);
         submissionFee = _submissionFee;
         voteCost = _voteCost;
         burnBps = _burnBps;
 
         contestId = 1;
-        contestEnd = block.timestamp + (_durationHours * 1 hours);
+        contestEnd = block.timestamp + (_durationMinutes * 1 minutes);
         currentPhase = Phase.Active;
 
         emit ContestStarted(1, contestEnd);
@@ -171,12 +171,12 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         emit PhaseChanged(Phase.Completed);
     }
 
-    function startContest(uint256 _durationHours) external onlyOwner {
+    function startContest(uint256 _durationMinutes) external onlyOwner {
         require(currentPhase == Phase.Inactive || currentPhase == Phase.Completed, "Contest in progress");
-        require(_durationHours > 0, "Invalid duration");
+        require(_durationMinutes > 0, "Invalid duration");
 
         contestId++;
-        contestEnd = block.timestamp + (_durationHours * 1 hours);
+        contestEnd = block.timestamp + (_durationMinutes * 1 minutes);
         currentPhase = Phase.Active;
 
         emit ContestStarted(contestId, contestEnd);
