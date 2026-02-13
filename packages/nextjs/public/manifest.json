@@ -1,5 +1,5 @@
 {
-  name: 'Scaffold-ETH 2 DApp',
-  description: 'A DApp built with Scaffold-ETH',
-  iconPath: 'logo.svg'
+  "name": "CLAWD Meme Arena",
+  "description": "The dankest meme contest on Base. Submit memes, vote with $CLAWD, win prizes.",
+  "iconPath": "favicon.png"
 }
