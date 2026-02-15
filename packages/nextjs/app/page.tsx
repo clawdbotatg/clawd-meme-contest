@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
@@ -222,7 +222,7 @@ const Home: NextPage = () => {
     functionName: "balanceOf",
     args: [connectedAddress],
   });
-  const { data: clawdAllowance } = useScaffoldReadContract({
+  const { data: clawdAllowance, refetch: refetchAllowance } = useScaffoldReadContract({
     contractName: "CLAWD",
     functionName: "allowance",
     args: [connectedAddress, contestAddress],
@@ -231,6 +231,16 @@ const Home: NextPage = () => {
   /* ═══ Contract writes ═══ */
   const { writeContractAsync: writeContest } = useScaffoldWriteContract({ contractName: "ClawdMemeContest" });
   const { writeContractAsync: writeClawd } = useScaffoldWriteContract({ contractName: "CLAWD" });
+  const publicClient = usePublicClient();
+
+  /** Approve tokens and wait for the tx to be mined before returning */
+  const approveAndWait = async (amount: bigint) => {
+    const txHash = await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
+    if (publicClient && txHash) {
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      await refetchAllowance();
+    }
+  };
 
   /* ═══ Derived ═══ */
   // Phase: 0=Inactive, 1=Active, 2=Completed
@@ -307,7 +317,7 @@ const Home: NextPage = () => {
     if (currentAllowance < fee) {
       setIsApproving(true);
       try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, fee * 4n] });
+        await approveAndWait(fee * 4n);
       } catch {
         notification.error("Approval failed");
         setIsApproving(false);
@@ -340,7 +350,7 @@ const Home: NextPage = () => {
     if (currentAllowance < cost) {
       setBuyingMemeId(memeId);
       try {
-        await writeClawd({ functionName: "approve", args: [contestAddress, cost * 4n] });
+        await approveAndWait(cost * 4n);
       } catch {
         notification.error("Approval failed");
         setBuyingMemeId(null);
@@ -399,7 +409,7 @@ const Home: NextPage = () => {
       if (bonus > 0n) {
         const currentAllowance = clawdAllowance || 0n;
         if (currentAllowance < bonus) {
-          await writeClawd({ functionName: "approve", args: [contestAddress, bonus] });
+          await approveAndWait(bonus);
         }
       }
 
@@ -691,34 +701,36 @@ const Home: NextPage = () => {
 
             {/* Meme list for selection */}
             <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
-              {[...(allMemes || [])].sort((a: any, b: any) => Number(b.totalVotes - a.totalVotes)).map((meme: any) => {
-                const isSelected = selectedWinners.includes(Number(meme.id));
-                return (
-                  <div
-                    key={Number(meme.id)}
-                    onClick={() => toggleWinner(Number(meme.id))}
-                    className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all border ${
-                      isSelected
-                        ? "bg-[#ffd700]/10 border-[#ffd700]/30"
-                        : "bg-white/[0.02] border-white/[0.04] hover:border-white/[0.08]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
-                          isSelected ? "bg-[#ffd700] text-black" : "bg-white/[0.05] text-gray-600"
-                        }`}
-                      >
-                        {isSelected ? selectedWinners.indexOf(Number(meme.id)) + 1 : ""}
+              {[...(allMemes || [])]
+                .sort((a: any, b: any) => Number(b.totalVotes - a.totalVotes))
+                .map((meme: any) => {
+                  const isSelected = selectedWinners.includes(Number(meme.id));
+                  return (
+                    <div
+                      key={Number(meme.id)}
+                      onClick={() => toggleWinner(Number(meme.id))}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all border ${
+                        isSelected
+                          ? "bg-[#ffd700]/10 border-[#ffd700]/30"
+                          : "bg-white/[0.02] border-white/[0.04] hover:border-white/[0.08]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black ${
+                            isSelected ? "bg-[#ffd700] text-black" : "bg-white/[0.05] text-gray-600"
+                          }`}
+                        >
+                          {isSelected ? selectedWinners.indexOf(Number(meme.id)) + 1 : ""}
+                        </div>
+                        <span className="text-[11px] font-mono text-gray-400 truncate">{meme.tweetUrl}</span>
                       </div>
-                      <span className="text-[11px] font-mono text-gray-400 truncate">{meme.tweetUrl}</span>
+                      <span className="text-[11px] font-mono font-bold text-[#39ff14] shrink-0 ml-2">
+                        {fmtC(meme.totalVotes)}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-mono font-bold text-[#39ff14] shrink-0 ml-2">
-                      {fmtC(meme.totalVotes)}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
 
             {/* Bonus amount */}
