@@ -38,6 +38,9 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
     mapping(address => uint256[]) public creatorMemes;
     mapping(uint256 => mapping(address => uint256)) public votes;
 
+    // ============ Moderation ============
+    mapping(uint256 => bool) public censored;
+
     // ============ Stats ============
     uint256 public totalBurned;
 
@@ -45,6 +48,7 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
     event ContestStarted(uint256 indexed contestId, uint256 contestEnd);
     event MemeSubmitted(uint256 indexed memeId, address indexed creator, string tweetUrl);
     event VoteCast(uint256 indexed memeId, address indexed voter, uint256 cost);
+    event MemeCensored(uint256 indexed memeId, uint256 burnedAmount);
     event PrizesDistributed(uint256 indexed contestId, uint256 totalDistributed);
     event WinnerSelected(uint256 indexed memeId, address indexed creator, uint256 prizeAmount);
     event PhaseChanged(Phase newPhase);
@@ -114,6 +118,7 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
 
     function vote(uint256 memeId) external nonReentrant whenActive {
         require(memeId > 0 && memeId <= memeCount, "Invalid meme");
+        require(!censored[memeId], "Meme censored");
 
         // Transfer fixed vote cost
         clawd.safeTransferFrom(msg.sender, address(this), voteCost);
@@ -171,6 +176,30 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         emit PhaseChanged(Phase.Completed);
     }
 
+    /// @notice Censor a meme — burns its remaining stake (submission fee + votes minus already-burned portion) and hides it
+    function censorMeme(uint256 memeId) external onlyOwner {
+        require(memeId > 0 && memeId <= memeCount, "Invalid meme");
+        require(!censored[memeId], "Already censored");
+
+        censored[memeId] = true;
+
+        // Burn whatever CLAWD this meme contributed to the pool:
+        // submission fee after burn + all vote value accumulated
+        uint256 submitRetained = submissionFee - (submissionFee * burnBps) / 10000;
+        uint256 burnAmount = submitRetained + memes[memeId].totalVotes;
+
+        // Only burn what the contract actually holds
+        uint256 bal = clawd.balanceOf(address(this));
+        if (burnAmount > bal) burnAmount = bal;
+
+        if (burnAmount > 0) {
+            clawd.safeTransfer(DEAD, burnAmount);
+            totalBurned += burnAmount;
+        }
+
+        emit MemeCensored(memeId, burnAmount);
+    }
+
     function startContest(uint256 _durationMinutes) external onlyOwner {
         require(currentPhase == Phase.Inactive || currentPhase == Phase.Completed, "Contest in progress");
         require(_durationMinutes > 0, "Invalid duration");
@@ -204,11 +233,20 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
     }
 
     function getAllMemes() external view returns (Meme[] memory) {
-        Meme[] memory allMemes = new Meme[](memeCount);
+        // Count uncensored memes first
+        uint256 count;
         for (uint256 i = 1; i <= memeCount; i++) {
-            allMemes[i - 1] = memes[i];
+            if (!censored[i]) count++;
         }
-        return allMemes;
+        Meme[] memory result = new Meme[](count);
+        uint256 j;
+        for (uint256 i = 1; i <= memeCount; i++) {
+            if (!censored[i]) {
+                result[j] = memes[i];
+                j++;
+            }
+        }
+        return result;
     }
 
     function getContestInfo()
