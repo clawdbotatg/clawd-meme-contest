@@ -50,33 +50,65 @@ type SortMode = "top" | "new";
    TWEET EMBED COMPONENT
    ═══════════════════════════════════════════ */
 function TweetEmbed({ tweetId, className }: { tweetId: string; className?: string }) {
-  // Use publish.twitter.com iframe — no JS widget, no double-render issues
-  const src = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}&theme=dark&dnt=true&hideCard=false&hideThread=true&width=400`;
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(700);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.origin === "https://platform.twitter.com" && e.data?.["twttr.embed"]?.method === "twttr.private.resize") {
-        const params = e.data["twttr.embed"].params;
-        if (params && params.length > 0 && params[0].height) {
-          setHeight(params[0].height + 2);
-        }
-      }
+    if (!containerRef.current || !tweetId) return;
+    const el = containerRef.current;
+    el.innerHTML = "";
+
+    // Load Twitter widgets.js if not already loaded
+    const win = window as unknown as {
+      twttr?: {
+        widgets: { createTweet: (id: string, el: HTMLElement, opts: Record<string, unknown>) => Promise<HTMLElement> };
+      };
     };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
+    const render = () => {
+      win
+        .twttr!.widgets.createTweet(tweetId, el, {
+          theme: "dark",
+          dnt: true,
+          conversation: "none",
+          align: "center",
+        })
+        .then(() => setLoaded(true));
+    };
+
+    if (win.twttr?.widgets) {
+      render();
+    } else {
+      // Load the script
+      if (!document.getElementById("twitter-wjs")) {
+        const s = document.createElement("script");
+        s.id = "twitter-wjs";
+        s.src = "https://platform.twitter.com/widgets.js";
+        s.async = true;
+        s.onload = () => {
+          // widgets.js sets window.twttr after a tick
+          const wait = setInterval(() => {
+            if (win.twttr?.widgets) {
+              clearInterval(wait);
+              render();
+            }
+          }, 50);
+        };
+        document.head.appendChild(s);
+      } else {
+        // Script tag exists but maybe still loading
+        const wait = setInterval(() => {
+          if (win.twttr?.widgets) {
+            clearInterval(wait);
+            render();
+          }
+        }, 50);
+      }
+    }
+  }, [tweetId]);
 
   return (
-    <div className={className} style={{ background: "#15202b", overflow: "hidden", marginRight: "-1px" }}>
-      <iframe
-        ref={iframeRef}
-        src={src}
-        scrolling="auto"
-        style={{ width: "calc(100% + 20px)", height, border: "none", background: "#15202b", colorScheme: "dark" }}
-        allowFullScreen
-      />
+    <div className={className} style={{ background: "#15202b", minHeight: loaded ? undefined : 200 }}>
+      <div ref={containerRef} />
     </div>
   );
 }
