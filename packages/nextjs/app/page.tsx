@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
@@ -52,13 +52,29 @@ type SortMode = "top" | "new";
 function TweetEmbed({ tweetId, className }: { tweetId: string; className?: string }) {
   // Use publish.twitter.com iframe — no JS widget, no double-render issues
   const src = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}&theme=dark&dnt=true&hideCard=false&hideThread=true&width=400`;
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(500);
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.origin === "https://platform.twitter.com" && e.data?.["twttr.embed"]?.method === "twttr.private.resize") {
+        const params = e.data["twttr.embed"].params;
+        if (params && params.length > 0 && params[0].height) {
+          setHeight(params[0].height + 2);
+        }
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   return (
-    <div className={className} style={{ background: "#000", overflow: "hidden", marginRight: "-1px" }}>
+    <div className={className} style={{ background: "#15202b", overflow: "hidden", marginRight: "-1px" }}>
       <iframe
+        ref={iframeRef}
         src={src}
         scrolling="no"
-        style={{ width: "calc(100% + 20px)", minHeight: 500, border: "none", background: "#000", colorScheme: "dark" }}
+        style={{ width: "calc(100% + 20px)", height, border: "none", background: "#15202b", colorScheme: "dark" }}
         allowFullScreen
       />
     </div>
