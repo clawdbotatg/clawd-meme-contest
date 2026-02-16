@@ -53,7 +53,7 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
   // Use publish.twitter.com iframe — no JS widget, no double-render issues
   const src = `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}&theme=dark&dnt=true&hideCard=false&hideThread=true&width=400`;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(500);
+  const [height, setHeight] = useState(700);
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -73,7 +73,7 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
       <iframe
         ref={iframeRef}
         src={src}
-        scrolling="no"
+        scrolling="auto"
         style={{ width: "calc(100% + 20px)", height, border: "none", background: "#15202b", colorScheme: "dark" }}
         allowFullScreen
       />
