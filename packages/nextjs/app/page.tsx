@@ -11,6 +11,17 @@ import { notification } from "~~/utils/scaffold-eth";
    HELPERS
    ═══════════════════════════════════════════ */
 
+/** On mobile, redirect the user to their wallet app to sign the pending tx */
+const openWalletForSigning = () => {
+  if (typeof window === "undefined") return;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (!isMobile) return;
+  // MetaMask deep link — works on both iOS and Android
+  // Other wallets (Rainbow, Coinbase) also respond to their own deep links,
+  // but MetaMask is most common. WalletConnect-based wallets get a push notification.
+  window.open("https://metamask.app.link/", "_self");
+};
+
 const fmtC = (val: bigint | undefined) => {
   if (!val) return "0";
   const num = Number(formatEther(val));
@@ -283,6 +294,7 @@ const Home: NextPage = () => {
 
   /** Approve tokens and wait for the tx to be mined before returning */
   const approveAndWait = async (amount: bigint) => {
+    openWalletForSigning();
     const txHash = await writeClawd({ functionName: "approve", args: [contestAddress, amount] });
     if (publicClient && txHash) {
       await publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -376,6 +388,7 @@ const Home: NextPage = () => {
 
     setIsSubmitting(true);
     try {
+      openWalletForSigning();
       await writeContest({ functionName: "submitMeme", args: [tweetUrl] });
       notification.success("Meme submitted! 🦞");
       setShowSubmit(false);
@@ -408,6 +421,7 @@ const Home: NextPage = () => {
 
     setBuyingMemeId(memeId);
     try {
+      openWalletForSigning();
       await writeContest({ functionName: "vote", args: [BigInt(memeId)] });
       notification.success("Bought! 🔥");
       setTimeout(() => {
@@ -462,6 +476,7 @@ const Home: NextPage = () => {
       }
 
       const ids = selectedWinners.map(id => BigInt(id));
+      openWalletForSigning();
       await writeContest({
         functionName: "distributePrizes",
         args: [ids, amounts, bonus > 0n ? bonus : 0n],
