@@ -17,6 +17,7 @@ const WALLET_DEEP_LINKS: Record<string, string> = {
   rainbow: "https://rnbwapp.com/",
   coinbase: "https://go.cb-w.com/",
   trust: "https://link.trustwallet.com/",
+  phantom: "https://phantom.app/ul/browse/",
 };
 
 const openWalletForSigning = (connectorName?: string) => {
