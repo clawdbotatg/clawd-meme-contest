@@ -521,24 +521,7 @@ const Home: NextPage = () => {
       )}
 
       {/* ═══ CONTENT ═══ */}
-      {!isConnected ? (
-        /* ═══ NOT CONNECTED — BIG CONNECT CTA ═══ */
-        <div className="max-w-lg mx-auto px-4 py-24 text-center">
-          <h1 className="text-4xl font-black font-mono mb-3">
-            <span className="text-[#ff00ff]">CLAWD</span> MEME ARENA
-          </h1>
-          <p className="text-gray-500 font-mono text-sm mb-2">
-            Submit your best memes as tweets. Buy the ones you love.
-          </p>
-          <p className="text-gray-600 font-mono text-xs mb-8">
-            Clawd picks the top 3. Winners split the pot + bonus $CLAWD.
-          </p>
-          <p className="text-white font-mono text-lg mb-4">👆 Connect your wallet above to enter the arena</p>
-          <p className="text-gray-700 font-mono text-[10px] mt-4">
-            on Base · powered by $CLAWD · judged by an AI lobster
-          </p>
-        </div>
-      ) : sortedMemes.length > 0 ? (
+      {sortedMemes.length > 0 ? (
         /* ═══ MEME GRID ═══ */
         <div className="max-w-[1400px] mx-auto px-2 pb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
@@ -557,7 +540,7 @@ const Home: NextPage = () => {
           </div>
         </div>
       ) : (
-        /* ═══ CONNECTED BUT NO MEMES ═══ */
+        /* ═══ NO MEMES YET ═══ */
         <div className="max-w-lg mx-auto px-4 py-20 text-center">
           {isActive && !isEnded ? (
             <>
@@ -565,9 +548,13 @@ const Home: NextPage = () => {
               <p className="text-gray-500 font-mono text-sm mb-6">
                 Be the first to submit a meme. Post your meme as a tweet, then paste the URL here.
               </p>
-              <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
-                SUBMIT FIRST MEME
-              </button>
+              {isConnected ? (
+                <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3 text-sm">
+                  SUBMIT FIRST MEME
+                </button>
+              ) : (
+                <p className="text-white font-mono text-lg">👆 Connect your wallet to submit</p>
+              )}
               <p className="text-gray-700 font-mono text-[10px] mt-3">costs {fmtC(submissionFee)} CLAWD · 10% burned</p>
             </>
           ) : isCompleted ? (
