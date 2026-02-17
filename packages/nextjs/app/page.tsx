@@ -541,8 +541,8 @@ const Home: NextPage = () => {
         <div className="flex items-center gap-2">
           {/* Submit */}
           {isActive && !isEnded && isConnected && (
-            <button onClick={() => setShowSubmit(true)} className="btn-hot px-3 py-1.5 text-[10px]">
-              SUBMIT MEME
+            <button onClick={() => setShowSubmit(true)} className="btn-hot px-5 py-2.5 text-sm">
+              🔥 SUBMIT MEME
             </button>
           )}
 
@@ -624,6 +624,23 @@ const Home: NextPage = () => {
               <p className="text-gray-700 font-mono text-xs">Check back later.</p>
             </>
           )}
+        </div>
+      )}
+
+      {/* ═══ BOTTOM CTA ═══ */}
+      {isActive && !isEnded && sortedMemes.length > 0 && (
+        <div className="max-w-[1400px] mx-auto px-3 pb-8">
+          <div className="border border-[#ff00ff]/10 rounded-xl bg-[#ff00ff]/[0.03] p-6 flex flex-col items-center gap-3">
+            <p className="text-gray-400 font-mono text-sm">Think you can do better?</p>
+            {isConnected ? (
+              <button onClick={() => setShowSubmit(true)} className="btn-hot px-8 py-3.5 text-base">
+                🔥 SUBMIT YOUR MEME
+              </button>
+            ) : (
+              <p className="text-white font-mono text-base font-bold">👆 Connect wallet to submit</p>
+            )}
+            <p className="text-gray-700 font-mono text-[10px]">costs {fmtC(submissionFee)} CLAWD · 10% burned</p>
+          </div>
         </div>
       )}
 
