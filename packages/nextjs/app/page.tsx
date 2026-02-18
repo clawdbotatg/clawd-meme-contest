@@ -58,6 +58,14 @@ const fmtCFull = (val: bigint | undefined) => {
   return Number(formatEther(val)).toLocaleString();
 };
 
+let _clawdPriceUsd: number | null = null;
+const fmtUsd = (clawdAmount: bigint | undefined) => {
+  if (!clawdAmount || !_clawdPriceUsd) return "";
+  const usd = Number(formatEther(clawdAmount)) * _clawdPriceUsd;
+  if (usd < 0.01) return "";
+  return `(~$${usd < 1 ? usd.toFixed(2) : usd < 100 ? usd.toFixed(1) : Math.round(usd).toLocaleString()})`;
+};
+
 /** Extract tweet ID from an x.com or twitter.com URL */
 function extractTweetId(url: string): string | null {
   const match = url.match(/(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/);
@@ -264,7 +272,8 @@ const Home: NextPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [buyingMemeId, setBuyingMemeId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("top");
-  const [clawdPriceUsd, setClawdPriceUsd] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [clawdPriceUsd, setClawdPriceUsd] = useState<number | null>(null); // triggers re-render when price loads
 
   // Fetch CLAWD price from DexScreener
   useEffect(() => {
@@ -273,20 +282,17 @@ const Home: NextPage = () => {
         const res = await fetch("https://api.dexscreener.com/latest/dex/tokens/0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07");
         const data = await res.json();
         const pair = data.pairs?.[0];
-        if (pair?.priceUsd) setClawdPriceUsd(parseFloat(pair.priceUsd));
+        if (pair?.priceUsd) {
+          const price = parseFloat(pair.priceUsd);
+          _clawdPriceUsd = price;
+          setClawdPriceUsd(price);
+        }
       } catch { /* silent */ }
     };
     fetchPrice();
     const interval = setInterval(fetchPrice, 60_000);
     return () => clearInterval(interval);
   }, []);
-
-  const fmtUsd = (clawdAmount: bigint | undefined) => {
-    if (!clawdAmount || !clawdPriceUsd) return "";
-    const usd = Number(formatEther(clawdAmount)) * clawdPriceUsd;
-    if (usd < 0.01) return "";
-    return `(~$${usd < 1 ? usd.toFixed(2) : usd < 100 ? usd.toFixed(1) : Math.round(usd).toLocaleString()})`;
-  };
 
   // Admin states
   const [bonusAmount, setBonusAmount] = useState("");
