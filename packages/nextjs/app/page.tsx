@@ -693,6 +693,9 @@ const Home: NextPage = () => {
         </div>
       </footer>
 
+      {/* Bottom padding so content is scrollable past fold on mobile */}
+      <div className="pb-32" />
+
       {/* ═══ SUBMIT MODAL ═══ */}
       {showSubmit && (
         <div
