@@ -5,6 +5,7 @@ import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
 /* ═══════════════════════════════════════════
@@ -175,7 +176,7 @@ function MemeCard({
       {/* Prize badge — big overlay */}
       {hasPrize && (
         <div className="absolute top-3 right-3 z-10 bg-[#ffd700] text-black text-lg font-black px-4 py-2 rounded-lg uppercase tracking-wider shadow-lg shadow-[#ffd700]/30">
-          🏆 {fmtC(meme.prizeAmount)} CLAWD
+          🏆 {fmtC(meme.prizeAmount)} CLAWD {fmtUsd(meme.prizeAmount)}
         </div>
       )}
 
@@ -250,6 +251,29 @@ const Home: NextPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [buyingMemeId, setBuyingMemeId] = useState<number | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("top");
+  const [clawdPriceUsd, setClawdPriceUsd] = useState<number | null>(null);
+
+  // Fetch CLAWD price from DexScreener
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch("https://api.dexscreener.com/latest/dex/tokens/0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07");
+        const data = await res.json();
+        const pair = data.pairs?.[0];
+        if (pair?.priceUsd) setClawdPriceUsd(parseFloat(pair.priceUsd));
+      } catch { /* silent */ }
+    };
+    fetchPrice();
+    const interval = setInterval(fetchPrice, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fmtUsd = (clawdAmount: bigint | undefined) => {
+    if (!clawdAmount || !clawdPriceUsd) return "";
+    const usd = Number(formatEther(clawdAmount)) * clawdPriceUsd;
+    if (usd < 0.01) return "";
+    return `(~$${usd < 1 ? usd.toFixed(2) : usd < 100 ? usd.toFixed(1) : Math.round(usd).toLocaleString()})`;
+  };
 
   // Admin states
   const [bonusAmount, setBonusAmount] = useState("");
@@ -530,7 +554,7 @@ const Home: NextPage = () => {
           {/* Stats */}
           <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
             <span className="text-[9px] text-gray-600 font-mono">POOL</span>
-            <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(contractBalance)}</span>
+            <span className="text-[11px] font-black font-mono text-[#ffd700]">{fmtC(contractBalance)} <span className="text-gray-600 font-normal">{fmtUsd(contractBalance)}</span></span>
           </div>
           <div className="hidden lg:flex items-center gap-1 px-2.5 py-1 bg-white/[0.02] rounded-lg border border-white/[0.04]">
             <span className="text-[9px] text-gray-600 font-mono">BURN</span>
@@ -571,7 +595,7 @@ const Home: NextPage = () => {
           </div>
           <div className="text-[11px] text-gray-600 font-mono">
             {sortedMemes.length} meme{sortedMemes.length !== 1 ? "s" : ""}
-            {voteCost && <span className="ml-2 text-gray-700">buy = {fmtC(voteCost)} CLAWD</span>}
+            {voteCost && <span className="ml-2 text-gray-700">buy = {fmtC(voteCost)} CLAWD {fmtUsd(voteCost)}</span>}
           </div>
         </div>
       )}
@@ -609,9 +633,9 @@ const Home: NextPage = () => {
                   SUBMIT FIRST MEME
                 </button>
               ) : (
-                <p className="text-white font-mono text-lg">👆 Connect your wallet to submit</p>
+                <RainbowKitCustomConnectButton />
               )}
-              <p className="text-gray-700 font-mono text-[10px] mt-3">costs {fmtC(submissionFee)} CLAWD · 10% burned</p>
+              <p className="text-gray-700 font-mono text-[10px] mt-3">costs {fmtC(submissionFee)} CLAWD {fmtUsd(submissionFee)} · 10% burned</p>
             </>
           ) : isCompleted ? (
             <>
@@ -710,14 +734,14 @@ const Home: NextPage = () => {
               <div className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2.5">
                 <span className="text-[10px] text-gray-500 font-mono">Entry fee</span>
                 <div className="text-right">
-                  <span className="text-sm font-black font-mono text-[#ff00ff]">{fmtCFull(submissionFee)} CLAWD</span>
+                  <span className="text-sm font-black font-mono text-[#ff00ff]">{fmtCFull(submissionFee)} CLAWD <span className="text-gray-500 font-normal text-xs">{fmtUsd(submissionFee)}</span></span>
                   <span className="text-[9px] text-gray-600 font-mono ml-1.5">(10% burned)</span>
                 </div>
               </div>
 
               {!isConnected ? (
-                <div className="text-center py-3 text-gray-400 font-mono text-sm">
-                  👆 Connect your wallet in the header to submit
+                <div className="flex justify-center py-3">
+                  <RainbowKitCustomConnectButton />
                 </div>
               ) : (
                 <button
