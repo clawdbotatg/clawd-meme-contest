@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     ClawdMemeContest: {
-      address: "0xE94B4b5a7a0a98cf9ed303a9c6d2d4Ad7E5EF423",
+      address: "0xd13994771d0d40f6ed26dede4c59c61faeba93bb",
       abi: [
         {
           type: "constructor",
@@ -67,6 +67,38 @@ const deployedContracts = {
               name: "",
               type: "uint256",
               internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "censorMeme",
+          inputs: [
+            {
+              name: "memeId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "censored",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
             },
           ],
           stateMutability: "view",
@@ -597,6 +629,25 @@ const deployedContracts = {
         },
         {
           type: "event",
+          name: "MemeCensored",
+          inputs: [
+            {
+              name: "memeId",
+              type: "uint256",
+              indexed: true,
+              internalType: "uint256",
+            },
+            {
+              name: "burnedAmount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
           name: "MemeSubmitted",
           inputs: [
             {
@@ -761,7 +812,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 42199212,
+      deployedOnBlock: 42317520,
     },
   },
   31337: {
@@ -1170,6 +1221,38 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "censorMeme",
+          inputs: [
+            {
+              name: "memeId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "censored",
+          inputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "clawd",
           inputs: [],
           outputs: [
@@ -1685,6 +1768,25 @@ const deployedContracts = {
             },
             {
               name: "burnBps",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "MemeCensored",
+          inputs: [
+            {
+              name: "memeId",
+              type: "uint256",
+              indexed: true,
+              internalType: "uint256",
+            },
+            {
+              name: "burnedAmount",
               type: "uint256",
               indexed: false,
               internalType: "uint256",

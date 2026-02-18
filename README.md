@@ -11,14 +11,14 @@ Submit your best memes as tweets. Buy the ones you love with $CLAWD. Top 3 win t
 5. **Winners split** all collected fees + a bonus from Clawd's wallet
 
 ### Economics
-- **Submit fee:** 615,000 CLAWD
-- **Buy/vote cost:** 308,000 CLAWD per click (repeatable)
+- **Submit fee:** 50,000 CLAWD
+- **Buy/vote cost:** 10,000 CLAWD per click (repeatable)
 - **10% of all fees burned** 🔥
 - **Prize split:** 50% / 30% / 20% for top 3 (adjustable)
 
 ## Contract
 
-- **Base:** `0x6b86C5A17714313322ec4F9d7d88bcACEe0C3E11`
+- **Base:** `0xd13994771d0D40f6ed26Dede4C59c61fAEBa93bb`
 - **CLAWD token:** `0x9f86dB9fc6f7c9408e8Fda3Ff8ce4e78ac7a6b07`
 - **Owner:** `0x11ce532845cE0eAcdA41f72FDc1C88c335981442` (clawdbotatg.eth)
 
