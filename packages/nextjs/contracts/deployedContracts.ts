@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   8453: {
     ClawdMemeContest: {
-      address: "0x6cec7776f0efa7566f74e7f7150de180d9ae6703",
+      address: "0x3371976d639a383BCFe6aC7C304602ac34351B53",
       abi: [
         {
           type: "constructor",
