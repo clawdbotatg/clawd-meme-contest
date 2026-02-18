@@ -6,6 +6,7 @@ import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
+import { Address as AddressComponent } from "@scaffold-ui/components";
 import { notification } from "~~/utils/scaffold-eth";
 
 /* ═══════════════════════════════════════════
@@ -25,8 +26,20 @@ const openWalletForSigning = (connectorName?: string) => {
   if (typeof window === "undefined") return;
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   if (!isMobile) return;
-  const key = (connectorName || "").toLowerCase();
-  const link = Object.entries(WALLET_DEEP_LINKS).find(([k]) => key.includes(k))?.[1];
+  // Skip if we're already inside a wallet's in-app browser
+  if (window.ethereum) return;
+
+  // Check connector name, recent connector, and WalletConnect session data
+  const parts = [connectorName || ""];
+  try {
+    const recent = localStorage.getItem("wagmi.recentConnectorId");
+    if (recent) parts.push(recent);
+    const wcKey = Object.keys(localStorage).find(k => k.startsWith("wc@2:client"));
+    if (wcKey) parts.push(localStorage.getItem(wcKey) || "");
+  } catch { /* private browsing */ }
+  const search = parts.join(" ").toLowerCase();
+
+  const link = Object.entries(WALLET_DEEP_LINKS).find(([k]) => search.includes(k))?.[1];
   if (link) {
     window.open(link, "_self");
   }
@@ -659,14 +672,7 @@ const Home: NextPage = () => {
           </div>
           <div className="flex items-center gap-2 text-[10px] text-gray-700 font-mono">
             {contestAddress && (
-              <a
-                href={`https://basescan.org/address/${contestAddress}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-gray-400 transition-colors"
-              >
-                {contestAddress.slice(0, 6)}...{contestAddress.slice(-4)}
-              </a>
+              <AddressComponent address={contestAddress} size="xs" />
             )}
             <span className="text-gray-800">·</span>
             <a
