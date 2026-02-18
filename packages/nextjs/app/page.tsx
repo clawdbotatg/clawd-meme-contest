@@ -703,7 +703,7 @@ const Home: NextPage = () => {
           onClick={() => setShowSubmit(false)}
         >
           <div
-            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-2xl w-full"
+            className="bg-[#0a0a0a] border border-[#ff00ff]/20 rounded-xl p-5 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-1">
