@@ -16,7 +16,7 @@ contract DeployMemeContest is ScaffoldETHDeploy {
         uint256 voteCost = 10_000 * 1e18;        // 10K CLAWD per vote (one-click)
         uint256 burnBps = 1000;                   // 10%
 
-        uint256 durationMinutes = 180; // 3-hour contest
+        uint256 durationMinutes = 300; // 5-hour contest
 
         if (block.chainid == 31337) {
             // Local: deploy mock token

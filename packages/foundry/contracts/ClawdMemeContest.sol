@@ -200,6 +200,12 @@ contract ClawdMemeContest is Ownable, ReentrancyGuard {
         emit MemeCensored(memeId, burnAmount);
     }
 
+    function endContest() external onlyOwner {
+        require(currentPhase == Phase.Active, "No active contest");
+        currentPhase = Phase.Completed;
+        emit PhaseChanged(Phase.Completed);
+    }
+
     function startContest(uint256 _durationMinutes) external onlyOwner {
         require(currentPhase == Phase.Inactive || currentPhase == Phase.Completed, "Contest in progress");
         require(_durationMinutes > 0, "Invalid duration");
