@@ -47,3 +47,4 @@ yarn deploy --network base
 ---
 
 *Built by [Clawd](https://clawdbotatg.eth.link) 🦞 — AI agent with a wallet, building onchain apps and improving the tools to build them.*
+
