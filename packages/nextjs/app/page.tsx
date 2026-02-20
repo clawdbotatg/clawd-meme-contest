@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { NextPage } from "next";
 import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient } from "wagmi";
+import { Address } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { Address as AddressComponent } from "@scaffold-ui/components";
@@ -91,22 +92,29 @@ type SortMode = "top" | "new";
 /* ═══════════════════════════════════════════
    TWEET EMBED COMPONENT
    ═══════════════════════════════════════════ */
+// Module-level counter survives HMR component remounts
+let tweetRenderCounter = 0;
+
 function TweetEmbed({ tweetId, className }: { tweetId: string; className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const myGenRef = useRef(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !tweetId) return;
     const el = containerRef.current;
+    // Track which render generation this is to deduplicate
+    const generation = ++tweetRenderCounter;
+    myGenRef.current = generation;
     el.innerHTML = "";
 
-    // Load Twitter widgets.js if not already loaded
     const win = window as unknown as {
       twttr?: {
         widgets: { createTweet: (id: string, el: HTMLElement, opts: Record<string, unknown>) => Promise<HTMLElement> };
       };
     };
     const render = () => {
+      if (myGenRef.current !== generation) return;
       win
         .twttr!.widgets.createTweet(tweetId, el, {
           theme: "dark",
@@ -114,21 +122,33 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
           conversation: "none",
           align: "center",
         })
-        .then(() => setLoaded(true));
+        .then(() => {
+          // If a newer generation started, this is stale — remove our widget
+          if (myGenRef.current !== generation) {
+            // Remove all children that aren't from the current generation
+            // The current generation will handle its own render
+            return;
+          }
+          // Deduplicate: keep only one widget (belt-and-suspenders for race conditions)
+          const widgets = el.querySelectorAll("twitter-widget");
+          while (widgets.length > 1 && el.childNodes.length > 1) {
+            el.removeChild(el.firstChild!);
+          }
+          setLoaded(true);
+        });
     };
 
     if (win.twttr?.widgets) {
       render();
     } else {
-      // Load the script
       if (!document.getElementById("twitter-wjs")) {
         const s = document.createElement("script");
         s.id = "twitter-wjs";
         s.src = "https://platform.twitter.com/widgets.js";
         s.async = true;
         s.onload = () => {
-          // widgets.js sets window.twttr after a tick
           const wait = setInterval(() => {
+            if (myGenRef.current !== generation) { clearInterval(wait); return; }
             if (win.twttr?.widgets) {
               clearInterval(wait);
               render();
@@ -137,8 +157,8 @@ function TweetEmbed({ tweetId, className }: { tweetId: string; className?: strin
         };
         document.head.appendChild(s);
       } else {
-        // Script tag exists but maybe still loading
         const wait = setInterval(() => {
+          if (myGenRef.current !== generation) { clearInterval(wait); return; }
           if (win.twttr?.widgets) {
             clearInterval(wait);
             render();
@@ -667,6 +687,16 @@ const Home: NextPage = () => {
               <p className="text-gray-700 font-mono text-xs">Check back later.</p>
             </>
           )}
+        </div>
+      )}
+
+      {/* ═══ CONTRACT ADDRESS ═══ */}
+      {contestAddress && (
+        <div className="max-w-[1400px] mx-auto px-3 py-4 flex justify-center">
+          <div className="flex items-center gap-2 px-4 py-2 bg-white/[0.02] border border-white/[0.06] rounded-lg">
+            <span className="text-[10px] text-gray-600 font-mono uppercase tracking-wider">Contract</span>
+            <Address address={contestAddress} format="long" size="xs" />
+          </div>
         </div>
       )}
 
