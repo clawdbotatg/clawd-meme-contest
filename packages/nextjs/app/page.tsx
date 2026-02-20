@@ -377,9 +377,9 @@ const Home: NextPage = () => {
     });
     switch (sortMode) {
       case "top":
-        return memes.sort((a, b) => Number(b.totalVotes - a.totalVotes));
+        return memes.sort((a, b) => (b.totalVotes > a.totalVotes ? 1 : b.totalVotes < a.totalVotes ? -1 : 0));
       case "new":
-        return memes.sort((a, b) => Number(b.submittedAt - a.submittedAt));
+        return memes.sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : b.submittedAt < a.submittedAt ? -1 : 0));
       default:
         return memes;
     }
@@ -800,7 +800,7 @@ const Home: NextPage = () => {
             {/* Meme list for selection */}
             <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
               {[...(allMemes || [])]
-                .sort((a: any, b: any) => Number(b.totalVotes - a.totalVotes))
+                .sort((a: any, b: any) => (b.totalVotes > a.totalVotes ? 1 : b.totalVotes < a.totalVotes ? -1 : 0))
                 .map((meme: any) => {
                   const isSelected = selectedWinners.includes(Number(meme.id));
                   return (
