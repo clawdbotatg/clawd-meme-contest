@@ -162,6 +162,7 @@ function MemeCard({
   meme,
   rank,
   maxVotes,
+  totalVotePool,
   isActive,
   isConnected,
   onBuy,
@@ -170,6 +171,7 @@ function MemeCard({
   meme: Meme;
   rank: number;
   maxVotes: bigint;
+  totalVotePool: bigint;
   isActive: boolean;
   isConnected: boolean;
   onBuy: (id: number) => void;
@@ -213,8 +215,13 @@ function MemeCard({
       </div>
 
       {/* Vote bar */}
-      <div className="h-1 bg-white/5">
+      <div className="relative h-5 bg-white/5">
         <div className="h-full vote-bar" style={{ width: `${Math.max(pct, 1)}%` }} />
+        {totalVotePool > 0n && (
+          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono font-bold text-white/70">
+            {Number((meme.totalVotes * 100n) / totalVotePool)}% of votes
+          </span>
+        )}
       </div>
 
       {/* Info + action strip */}
@@ -388,6 +395,11 @@ const Home: NextPage = () => {
   const maxVotes = useMemo(() => {
     if (!allMemes || allMemes.length === 0) return 0n;
     return [...allMemes].reduce((max, m) => (m.totalVotes > max ? m.totalVotes : max), 0n);
+  }, [allMemes]);
+
+  const totalVotePool = useMemo(() => {
+    if (!allMemes || allMemes.length === 0) return 0n;
+    return [...allMemes].reduce((sum, m) => sum + m.totalVotes, 0n);
   }, [allMemes]);
 
   /* ═══ Countdown ═══ */
@@ -630,6 +642,7 @@ const Home: NextPage = () => {
                 meme={meme as Meme}
                 rank={rank}
                 maxVotes={maxVotes}
+                totalVotePool={totalVotePool}
                 isActive={isActive && !isEnded}
                 isConnected={isConnected}
                 onBuy={handleBuy}
